@@ -35,37 +35,44 @@ public class AppRun
       System.out.println("=========================================");
 
       // Create and execute a SELECT SQL statement.
-      String selectSql = "Select c.collections,c.amount,c.collecttype,c.collectdesc,c.collectionsDetail from Prolaw2008.dbo.collectionsDetail as c";
+      String selectSql = "Select c.collections,c.amount,c.collecttype,c.collectdesc,c.collectionsDetail from Prolaw2008.dbo.collectionsDetail as c ";
 
-      try (Statement statement = connection.createStatement();
-      ResultSet resultSet = statement.executeQuery(selectSql)) {
-        System.out.println("got Past");
-        StringBuilder b;
-        String comma = ", ";
-        String end = "\n";
-        FileWriter fw = new FileWriter("./src/main/resources/collectionDetails.csv");
-        System.out.println("goan");
-        while(resultSet.next()){
-          System.out.println("dfsda;df");
-          b = new StringBuilder();
-          System.out.println("1");
-          b.append(resultSet.getString(1));
-          b.append(comma);
-          b.append(resultSet.getString(2));
-          b.append(comma);
-          b.append(resultSet.getString(3));
-          b.append(comma);
-          b.append(resultSet.getString(4));
-          b.append(comma);
-          b.append(resultSet.getString(5));
-          b.append(end);
-          System.out.println("2");
-          System.out.println("about");
-          fw.write(b.toString());
-        }
-        System.out.println("done");
-        connection.close();
+
+      connection.setAutoCommit(false);
+      Statement statement = connection.createStatement();
+      statement.setFetchSize(500000);
+      ResultSet resultSet = statement.executeQuery(selectSql);
+      System.out.println("got Past");
+      StringBuilder b;
+      b = new StringBuilder();
+      String comma = ", ";
+      String end = "\n";
+      System.out.println("starting");
+      int recCount = 0;
+      while(resultSet.next()){
+        //System.out.println("dfsda;df");
+        //System.out.println("1");
+        /*
+        b.append(resultSet.getString(1));
+        b.append(comma);
+        b.append(resultSet.getString(2));
+        b.append(comma);
+        b.append(resultSet.getString(3));
+        b.append(comma);
+        b.append(resultSet.getString(4));
+        b.append(comma);
+        b.append(resultSet.getString(5));
+        b.append(end);
+        */
+        //System.out.println("2");
+        //System.out.println("about");
+        System.out.println(++recCount);
       }
+      FileWriter fw = new FileWriter("./src/main/resources/collectionDetails.csv");
+      fw.write(b.toString());
+      System.out.println("done");
+      connection.close();
+
     }
     catch (Exception e) {
       e.printStackTrace();
