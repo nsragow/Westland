@@ -68,14 +68,19 @@ import org.apache.commons.codec.binary.Base64;
 public class Workflow
 {
   private Directory dir;
-  //private static Map<String,OrgUnitDescription> orgMap = null;
-  private static Map<String,SignatureBuilder> dataMap;
+  private Map<String,SignatureBuilder> dataMap;
+  private ServiceManager serviceManager;
+  private StringBuilder logs;
 
-  public Workflow(Map<String,SignatureBuilder> dataMap, Directory dir)
+  //private static Map<String,OrgUnitDescription> orgMap = null;
+
+  public Workflow(Map<String,SignatureBuilder> dataMap, Directory dir, ServiceManager serviceManager)
   {
     //this.orgMap = orgMap;
     this.dataMap = dataMap;
     this.dir = dir;
+    this.serviceManager = serviceManager;
+    logs = new StringBuilder();
   }
 
   private void updateSignatures(Directory dir, String token, int step) throws IOException
@@ -93,7 +98,7 @@ public class Workflow
       for(String email : dataMap.keySet()){
         //updateUserSignature(email,dataMap.get(email).toString());
         if(!dataMap.get(email).isComplete()){
-          reports.err(email + " does not have sufficient information on their user+orgunit to create proper signature - signature not created");
+          logs.append(email + " does not have sufficient information on their user+orgunit to create proper signature - signature not created\n");
         }else{
           //System.out.println("updated sig for "+email);
           serviceManager.changeUserSignature(email, SignatureGenerator.makeSignature(dataMap.get(email)));
@@ -121,6 +126,47 @@ public class Workflow
       //call again
       updateSignatures(dir,token,step);
     }
+    if(logs.length() == 0){
+      throw new LogException(logs.toString());
+    }
   }
-  
+  private void specialRules()
+  {
+    //rule: boomy should have mobile in signature
+    if(dataMap.containsKey(Strings.avi_email)){
+      dataMap.get(Strings.avi_email).setDisplayMobile(true);
+    }
+    //rule: abe dont display fax and dont use main number
+    if(dataMap.containsKey(Strings.abe_email)){
+      dataMap.get(Strings.abe_email).remove("work_fax");
+      dataMap.get(Strings.abe_email).remove("work");
+    }
+    //rule: Change org names so that they display company name instead
+    CSVReader csvread = new CSVReader("./src/main/resources/companynames.csv");
+    Table table = csvread.getTable();
+    if(table == null){
+      throw new FatalException("FATAL: Was unable to get company names for orgs in specialRules(), exiting to prevent poor signatures...");
+    }
+    for(SignatureBuilder sb : dataMap.values()){
+      String org = sb.get("org");
+      if(org == null){
+        logs.append("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature\n");
+        sb.put("org","");
+      }else if(!Strings.BlackList.contains(org)){
+
+        String newOrg = table.get(org,"company");
+        if(newOrg == null){
+          sb.put("org","");
+          logs.append("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature");
+        }else{
+          sb.put("org",newOrg);
+        }
+      }else{
+        logs.append("org company name blacklisted for "+sb.get("email")+", "+sb.get("org")+", removing company name from signature");
+        sb.put("org","");
+      }
+
+    }
+  }
+
 }

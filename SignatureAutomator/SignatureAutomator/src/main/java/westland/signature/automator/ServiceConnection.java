@@ -67,8 +67,8 @@ import org.apache.commons.codec.binary.Base64;
 
 public class ServiceConnection
 {//clean this up todo make non static
-  
-  static final String[] itCC = null;
+
+  static String[] itCC = null;
   static Table STRINGS=null;
   static Table PATHS=null;
   static Table FILE_IDS=null;
@@ -84,64 +84,45 @@ public class ServiceConnection
   public static boolean orgCheckFailed = false;
 
   //strings
-  static String service_account = null;
-  static String root_org_address = null;
-  static String root_org_zip = null;
-  static String root_org_city = null;
-  static String root_org_state = null;
-  static String root_org_phone = null;
-  static String main_account_it = null;
-  static String exception_reporting_account = null;
-  static String exception_email_subject = null;
-  static String local_user_orgs_not_updated_message = null;
-  static String suspended_org_path = null;
+
   //paths
 
-  static String black_list = null;
-  static String roll_out = null;
-  static String current_user_orgs = null;
-  static String log_file = null;
 
 
 
   //BlackList
-  static Set<String> BlackList = null;
-  static Set<String> Rollout = null;
+
 
   static ServiceManager serviceManager = null;
 
 
-  /** Email of the Service Account */
-  private static final String SERVICE_ACCOUNT_EMAIL = null;
 
-  /** Path to the Service Account's Private Key file */
-  private static final String SERVICE_ACCOUNT_PKCS12_FILE_PATH = null;
 
   private static void stringInit()
   {//todo get rid of this
-    service_account = STRINGS.get("service_account","val");
-    root_org_address = STRINGS.get("root_org_address","val");
-    root_org_zip = STRINGS.get("root_org_zip","val");
-    root_org_city = STRINGS.get("root_org_city","val");
-    root_org_state = STRINGS.get("root_org_state","val");
-    root_org_phone = STRINGS.get("root_org_phone","val");
-    main_account_it = STRINGS.get("main_account_it","val");
-    exception_reporting_account = STRINGS.get("exception_reporting_account","val");
-    exception_email_subject = STRINGS.get("exception_email_subject","val");
-    local_user_orgs_not_updated_message = STRINGS.get("local_user_orgs_not_updated_message","val");
-    suspended_org_path = STRINGS.get("suspended_org_path","val");
-    SERVICE_ACCOUNT_PKCS12_FILE_PATH = PATHS.get("p12","val");
-    black_list = PATHS.get("black_list","val");
-    roll_out = PATHS.get("roll_out","val");
-    current_user_orgs = PATHS.get("current_user_orgs","val");
-    log_file = PATHS.get("log_file","val");
-    SERVICE_ACCOUNT_EMAIL = STRINGS.get("service_account","val");
-    abe_email = STRINGS.get("abe_email","val");
-    avi_email = STRINGS.get("avi_email","val");
-    noah_email = STRINGS.get("noah_email","val");
-    jesse_email = STRINGS.get("jesse_email","val");
-    tomer_email = STRINGS.get("tomer_email","val");
-    itCC = new String[]{tomer_email,abe_email,noah_email};
+    Strings.service_account = STRINGS.get("service_account","val");
+    Strings.root_org_address = STRINGS.get("root_org_address","val");
+    Strings.root_org_zip = STRINGS.get("root_org_zip","val");
+    Strings.root_org_city = STRINGS.get("root_org_city","val");
+    Strings.root_org_state = STRINGS.get("root_org_state","val");
+    Strings.root_org_phone = STRINGS.get("root_org_phone","val");
+    Strings.main_account_it = STRINGS.get("main_account_it","val");
+    Strings.exception_reporting_account = STRINGS.get("exception_reporting_account","val");
+    Strings.exception_email_subject = STRINGS.get("exception_email_subject","val");
+    Strings.local_user_orgs_not_updated_message = STRINGS.get("local_user_orgs_not_updated_message","val");
+    Strings.suspended_org_path = STRINGS.get("suspended_org_path","val");
+    Strings.SERVICE_ACCOUNT_PKCS12_FILE_PATH = PATHS.get("p12","val");
+    Strings.black_list = PATHS.get("black_list","val");
+    Strings.roll_out = PATHS.get("roll_out","val");
+    Strings.current_user_orgs = PATHS.get("current_user_orgs","val");
+    Strings.log_file = PATHS.get("log_file","val");
+    Strings.SERVICE_ACCOUNT_EMAIL = STRINGS.get("service_account","val");
+    Strings.abe_email = STRINGS.get("abe_email","val");
+    Strings.avi_email = STRINGS.get("avi_email","val");
+    Strings.noah_email = STRINGS.get("noah_email","val");
+    Strings.jesse_email = STRINGS.get("jesse_email","val");
+    Strings.tomer_email = STRINGS.get("tomer_email","val");
+    itCC = new String[]{Strings.tomer_email,Strings.abe_email,Strings.noah_email};
   }
   /**
   * Build and returns a Directory service object authorized with the service accounts
@@ -155,25 +136,25 @@ public class ServiceConnection
 
     PATHS = Initializer.getTable("./src/main/resources/Paths.csv");
     FILE_IDS = Initializer.getTable("./src/main/resources/drive_file_id.csv");
-    serviceManager = new ServiceManager(main_account_it,SERVICE_ACCOUNT_PKCS12_FILE_PATH,SERVICE_ACCOUNT_EMAIL);
+    STRINGS = Initializer.getTable("./src/main/resources/Strings.csv");
+    serviceManager = new ServiceManager(STRINGS.get("main_account_it","val"),STRINGS.get("p12","val"),STRINGS.get("service_account","val"));
     try{
-      Initializer.overwriteLocalFilesWithDrive(serviceManager.getDrive(main_account_it),FILE_IDS,PATHS);
+      Initializer.overwriteLocalFilesWithDrive(serviceManager.getDrive(STRINGS.get("main_account_it","val")),FILE_IDS,PATHS);
     }catch(Exception e){
       //todo deal with this Exception
       e.printStackTrace();
       System.exit(1);
     }
+
     STRINGS = Initializer.getTable("./src/main/resources/Strings.csv");
-
-
     stringInit();
 
-    oldOrgTable = Initializer.getTable(current_user_orgs);
+    oldOrgTable = Initializer.getTable(Strings.current_user_orgs);
     orgMap = new HashMap<>();
     dataMap = new HashMap<>();
     try{
-      BlackList = Initializer.fileToSet(black_list);
-      Rollout = Initializer.fileToSet(roll_out);
+      Strings.BlackList = Initializer.fileToSet(Strings.black_list);
+      Strings.Rollout = Initializer.fileToSet(Strings.roll_out);
     }catch(Exception e){
       e.printStackTrace();
       throw new RuntimeException();
@@ -200,7 +181,7 @@ public class ServiceConnection
     catch(Exception e){
       e.printStackTrace();
       try{
-        serviceManager.sendEmail(exception_reporting_account,exception_reporting_account,exception_email_subject,e.toString());
+        serviceManager.sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,e.toString());
       }catch(Exception b){
         reports.err(b.toString());
         exit(1);
@@ -214,7 +195,7 @@ public class ServiceConnection
     catch(Exception e){
       e.printStackTrace();
       try{
-        serviceManager.sendEmail(exception_reporting_account,exception_reporting_account,exception_email_subject,e.toString());
+        serviceManager.sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,e.toString());
       }catch(Exception b){
         reports.err(b.toString());
       }
@@ -226,12 +207,12 @@ public class ServiceConnection
 
     if(!orgCheckFailed){
       try{
-        Table.writeTableToCSV(oldOrgTable,current_user_orgs);
+        Table.writeTableToCSV(oldOrgTable,Strings.current_user_orgs);
 
       }catch(Exception e){
         e.printStackTrace();//todo handle this better
         try{
-          serviceManager.sendEmail(exception_reporting_account,exception_reporting_account,exception_email_subject,e.toString());
+          serviceManager.sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,e.toString());
         }catch(Exception b)
         {
           reports.err(b.toString());
@@ -239,7 +220,7 @@ public class ServiceConnection
       }
 
     }else{
-      reports.err(local_user_orgs_not_updated_message);
+      reports.err(Strings.local_user_orgs_not_updated_message);
     }
     exit(0);
   }
@@ -257,13 +238,13 @@ public class ServiceConnection
   private static void exit(int i)
   {
     try{
-      serviceManager.sendEmail(main_account_it,main_account_it,"[Automated] G-Suite Manager Error Reports",reports.getReport(),itCC);
+      serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"[Automated] G-Suite Manager Error Reports",reports.getReport(),itCC);
     }catch(Exception e){
       e.printStackTrace();
       reports.err(e.toString());
     }
     try {
-      Files.write(Paths.get(log_file), reports.getReport().getBytes(), StandardOpenOption.APPEND);
+      Files.write(Paths.get(Strings.log_file), reports.getReport().getBytes(), StandardOpenOption.APPEND);
     }catch (IOException e) {
       e.printStackTrace();
     }
@@ -289,7 +270,7 @@ public class ServiceConnection
           token = users.getNextPageToken();
           List<User> usersList = users.getUsers();
           for(User u : usersList){
-            if(!BlackList.contains(u.getPrimaryEmail()) && !BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
+            if(!Strings.BlackList.contains(u.getPrimaryEmail()) && !Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
 
               dataMap.put(u.getPrimaryEmail(),new SignatureBuilder(u));
             }else{
@@ -313,7 +294,7 @@ public class ServiceConnection
         //add the standard westland org unit
 
         OrgUnitDescription westland = new OrgUnitDescription();
-        westland.put("zip",root_org_zip).put("city",root_org_city).put("address",root_org_address).put("state",root_org_state).put("phone",root_org_phone).put("fax","");
+        westland.put("zip",Strings.root_org_zip).put("city",Strings.root_org_city).put("address",Strings.root_org_address).put("state",Strings.root_org_state).put("phone",Strings.root_org_phone).put("fax","");
         orgMap.put("Westland",westland);
 
 
@@ -563,13 +544,13 @@ public class ServiceConnection
   private static void specialRules()
   {
     //rule: boomy should have mobile in signature
-    if(dataMap.containsKey(avi_email)){
-      dataMap.get(avi_email).setDisplayMobile(true);
+    if(dataMap.containsKey(Strings.avi_email)){
+      dataMap.get(Strings.avi_email).setDisplayMobile(true);
     }
     //rule: abe dont display fax and dont use main number
-    if(dataMap.containsKey(abe_email)){
-      dataMap.get(abe_email).remove("work_fax");
-      dataMap.get(abe_email).remove("work");
+    if(dataMap.containsKey(Strings.abe_email)){
+      dataMap.get(Strings.abe_email).remove("work_fax");
+      dataMap.get(Strings.abe_email).remove("work");
     }
     //rule: Change org names so that they display company name instead
     CSVReader csvread = new CSVReader("./src/main/resources/companynames.csv");
@@ -583,7 +564,7 @@ public class ServiceConnection
       if(org == null){
         reports.err("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature");
         sb.put("org","");
-      }else if(!BlackList.contains(org)){
+      }else if(!Strings.BlackList.contains(org)){
 
         String newOrg = table.get(org,"company");
         if(newOrg == null){
@@ -630,7 +611,7 @@ public class ServiceConnection
       for(User u : usersList){
 
         if(!u.getSuspended()){
-          if(!BlackList.contains(u.getPrimaryEmail())&&!BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
+          if(!Strings.BlackList.contains(u.getPrimaryEmail())&&!Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
             String oldOrgName = null;
             String newOrgName = null;
             newOrgName = Helper.orgPathToName(u.getOrgUnitPath());
@@ -661,7 +642,7 @@ public class ServiceConnection
                   toSend.append("Fax on old org: "+oldOrg.get("fax")+"\n");
                   toSend.append("Fax on new org: "+newOrg.get("fax"));
                   //todo make sure after testing that it actually does send to the correct ppl
-                  serviceManager.sendEmail(main_account_it,main_account_it,"ORGCHANGE for "+ u.getPrimaryEmail()+" from "+ oldOrgName + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),itCC);
+                  serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"ORGCHANGE for "+ u.getPrimaryEmail()+" from "+ oldOrgName + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),itCC);
                   oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),Helper.orgPathToName(u.getOrgUnitPath())});
                 }
               }
@@ -684,7 +665,7 @@ public class ServiceConnection
                 //todo make sure after testing that it actually does send to the correct ppl
 
                 oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),Helper.orgPathToName(u.getOrgUnitPath())});
-                serviceManager.sendEmail(jesse_email,jesse_email,"ORGCHANGE for new user: "+ u.getPrimaryEmail() + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),itCC);
+                serviceManager.sendEmail(Strings.jesse_email,Strings.jesse_email,"ORGCHANGE for new user: "+ u.getPrimaryEmail() + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),itCC);
               }
             }
 
