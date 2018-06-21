@@ -55,7 +55,7 @@ public class ServiceManager
     HttpTransport httpTransport = getHttpTransport();
     JacksonFactory jsonFactory = getJacksonFactory();
     directory = new Directory.Builder(httpTransport, jsonFactory, null)
-    .setHttpRequestInitializer(credential).build();
+    .setHttpRequestInitializer(credential).setApplicationName("Noah'sAppWestlandMiddleWare").build();
   }
   private HttpTransport getHttpTransport()
   {
@@ -69,7 +69,7 @@ public class ServiceManager
   {
     HttpTransport httpTransport = getHttpTransport();
     JacksonFactory jsonFactory = getJacksonFactory();
-    return new Gmail.Builder(httpTransport, jsonFactory, getImpersonatedCredential(userEmail)).build();
+    return new Gmail.Builder(httpTransport, jsonFactory, getImpersonatedCredential(userEmail)).setApplicationName("Noah'sAppWestlandMiddleWare").build();
   }
   private GoogleCredential getImpersonatedCredential(String userEmail)
   {
@@ -102,7 +102,7 @@ public class ServiceManager
     JacksonFactory jsonFactory = getJacksonFactory();
 
     return new Drive.Builder(httpTransport, jsonFactory, null)
-    .setHttpRequestInitializer(credential).build();
+    .setHttpRequestInitializer(credential).setApplicationName("Noah'sAppWestlandMiddleWare").build();
   }
   public void sendEmail(String to, String from, String subject, String bodyText) throws Exception
   {

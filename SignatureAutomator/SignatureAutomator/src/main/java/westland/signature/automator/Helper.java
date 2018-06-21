@@ -1,4 +1,6 @@
 package westland.signature.automator;
+import java.io.StringWriter;
+import java.io.PrintWriter;
 public class Helper
 {
   protected static String orgPathToName(String path)
@@ -16,5 +18,11 @@ public class Helper
       return "Westland";
 
     }
+  }
+  protected static String exceptionToString(Exception e)
+  {
+    StringWriter errors = new StringWriter();
+    e.printStackTrace(new PrintWriter(errors));
+    return errors.toString();
   }
 }

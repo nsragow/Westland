@@ -122,7 +122,8 @@ public class ServiceConnection
     Strings.noah_email = STRINGS.get("noah_email","val");
     Strings.jesse_email = STRINGS.get("jesse_email","val");
     Strings.tomer_email = STRINGS.get("tomer_email","val");
-    itCC = new String[]{Strings.tomer_email,Strings.abe_email,Strings.noah_email};
+    Strings.itCC = new String[]{Strings.tomer_email,Strings.abe_email,Strings.noah_email};
+
   }
   /**
   * Build and returns a Directory service object authorized with the service accounts
@@ -137,7 +138,8 @@ public class ServiceConnection
     PATHS = Initializer.getTable("./src/main/resources/Paths.csv");
     FILE_IDS = Initializer.getTable("./src/main/resources/drive_file_id.csv");
     STRINGS = Initializer.getTable("./src/main/resources/Strings.csv");
-    serviceManager = new ServiceManager(STRINGS.get("main_account_it","val"),STRINGS.get("p12","val"),STRINGS.get("service_account","val"));
+    stringInit();
+    serviceManager = new ServiceManager(STRINGS.get("main_account_it","val"),PATHS.get("p12","val"),STRINGS.get("service_account","val"));
     try{
       Initializer.overwriteLocalFilesWithDrive(serviceManager.getDrive(STRINGS.get("main_account_it","val")),FILE_IDS,PATHS);
     }catch(Exception e){
@@ -162,12 +164,13 @@ public class ServiceConnection
   }
   private static void run()
   {
+
     try{
 
       initilize();
     }catch(Exception e){
-      reports.log(e.toString());
-      return;
+      reports.err(Helper.exceptionToString(e));
+      exit(1);
     }
 
     Directory service = null;
@@ -179,515 +182,108 @@ public class ServiceConnection
 
     }
     catch(Exception e){
-      e.printStackTrace();
-      try{
-        serviceManager.sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,e.toString());
-      }catch(Exception b){
-        reports.err(b.toString());
-        exit(1);
-      }
-    }
-
-    try{
-      //updateSignatures(service);
-
-    }
-    catch(Exception e){
-      e.printStackTrace();
-      try{
-        serviceManager.sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,e.toString());
-      }catch(Exception b){
-        reports.err(b.toString());
-      }
+      emailOrErr(e);
       exit(1);
     }
-    //networkLooper("checkForChangeInOrg");
-    //networkLooper("mainfunction");
-    System.exit(1);
-
-    if(!orgCheckFailed){
-      try{
-        Table.writeTableToCSV(oldOrgTable,Strings.current_user_orgs);
-
-      }catch(Exception e){
-        e.printStackTrace();//todo handle this better
-        try{
-          serviceManager.sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,e.toString());
-        }catch(Exception b)
-        {
-          reports.err(b.toString());
-        }
-      }
-
-    }else{
-      reports.err(Strings.local_user_orgs_not_updated_message);
+    StringBuilder logs = new StringBuilder();
+    DataCollector dataCollector = null;
+    try{
+      dataCollector = new DataCollector(service,logs);
+    }catch(FatalException e){
+      emailOrErr(e);
+      exit(1);
     }
+    if(logs.length() != 0){
+      emailOrLog(new RuntimeException(logs.toString()));
+    }
+
+    Map<String,SignatureBuilder> dataMap = dataCollector.getDataMap();
+    try{
+      //todo make sure signatures are updated
+      new SignatureUpdater(dataMap,serviceManager);
+    }
+    catch(FatalException e){//todo redo the response
+      emailOrErr(e);
+      exit(1);
+    }catch(LogException e){//todo redo the response
+      emailOrLog(e);
+    }
+    OrgMovementDetector orgDetector = new OrgMovementDetector(dataCollector.getUsers(),dataCollector.getDataMap(),dataCollector.getOrgMap(),serviceManager);
+    try{
+      orgDetector.checkForChangeInOrg();
+
+
+
+
+    }catch(LogException e){
+      emailOrLog(e);
+    }
+
+
+
+
+
+
     exit(0);
   }
 
   public static void main(String[] args)
   {
+
     reports = new Reports();
     try{
       run();
     }catch(Exception e){
-      reports.err(e.toString());
+
+      reports.err(Helper.exceptionToString(e));
+    }
+    exit(0);
+  }
+  private static void emailOrErr(Exception e)
+  {
+    try{
+      serviceManager.sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,Helper.exceptionToString(e));
+    }catch(Exception b)
+    {
+      reports.err(Helper.exceptionToString(b));
     }
   }
-
+  private static void emailOrLog(Exception e)
+  {
+    try{
+      serviceManager.sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,Helper.exceptionToString(e));
+    }catch(Exception b)
+    {
+      reports.log(Helper.exceptionToString(b));
+    }
+  }
   private static void exit(int i)
   {
     try{
-      serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"[Automated] G-Suite Manager Error Reports",reports.getReport(),itCC);
+      serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"[Automated] G-Suite Manager Error Reports",reports.getReport(),Strings.itCC);
     }catch(Exception e){
       e.printStackTrace();
-      reports.err(e.toString());
+      reports.err(Helper.exceptionToString(e));
     }
     try {
       Files.write(Paths.get(Strings.log_file), reports.getReport().getBytes(), StandardOpenOption.APPEND);
     }catch (IOException e) {
       e.printStackTrace();
     }
+
+    System.err.println(reports.getReport());
     System.exit(i);
   }
-  private static void updateSignatures(Directory dir, String token, int step) throws IOException
-  {
-    try{
-      if(step < 1){
-        do{
-          Directory.Users.List list = dir.users().list()
-          .setCustomer("my_customer")
-          .setMaxResults(5)//todo maybe optimize based on how often exception happens
-          .setOrderBy("email")
-          .setProjection("full");
-
-          //System.out.println("before listing");
-
-          //first collect whatever you can from Users, (name,email,title,fax,website,ext,company)
-
-          if(token!=null)list.setPageToken(token);
-          Users users = list.execute();
-          token = users.getNextPageToken();
-          List<User> usersList = users.getUsers();
-          for(User u : usersList){
-            if(!Strings.BlackList.contains(u.getPrimaryEmail()) && !Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
-
-              dataMap.put(u.getPrimaryEmail(),new SignatureBuilder(u));
-            }else{
-              //System.out.println("skipped "+u.getPrimaryEmail().toString());
-            }
-          }
-        }while(token!=null);
-        step = 1;
-      }
-      //now apply orginization info to orgMap
-      if(step < 2){
-        OrgUnits orgunits = dir.orgunits().list("my_customer").execute();
-        List<OrgUnit> list = orgunits.getOrganizationUnits();
-
-        for(OrgUnit o : list){
-          if(!o.getDescription().equals("#ignore")){
-            OrgUnitDescription toAdd = new OrgUnitDescription(o.getDescription());
-            orgMap.put(o.getName(), toAdd);
-          }
-        }
-        //add the standard westland org unit
-
-        OrgUnitDescription westland = new OrgUnitDescription();
-        westland.put("zip",Strings.root_org_zip).put("city",Strings.root_org_city).put("address",Strings.root_org_address).put("state",Strings.root_org_state).put("phone",Strings.root_org_phone).put("fax","");
-        orgMap.put("Westland",westland);
 
 
-        step = 2;
-      }
-
-      //now time to apply orgMap to dataMap
-      if(step<3){
-        for(SignatureBuilder sb : dataMap.values()){
-          String org = sb.get("org");
-          if(org == null)throw new RuntimeException("ran into unusual problem "+sb.get("email"));
-          OrgUnitDescription oud = orgMap.get(org);
-          if(oud != null){
-            sb.applyOUD(orgMap.get(org));
-          }else{
-            reports.err(sb.get("email")+ " has orgunit "  + org+", but that orgunit does not seem to have any info on gsuite");
-          }
-
-        }
-
-
-        step = 3;
-      }
-      if(step < 4){
-        //finally apply special rules
-        specialRules();
-      }
-      //at this point we only need to apply the dataMap to the signatures
-      for(String email : dataMap.keySet()){
-        //updateUserSignature(email,dataMap.get(email).toString());
-        if(!dataMap.get(email).isComplete()){
-          reports.err(email + " does not have sufficient information on their user+orgunit to create proper signature - signature not created");
-        }else{
-          //System.out.println("updated sig for "+email);
-          serviceManager.changeUserSignature(email, SignatureGenerator.makeSignature(dataMap.get(email)));
-        }
-
-      }
-      System.out.println("\n\n\n\n");
-      Table table = new Table(new String[]{"Email","Name","Org","Website","Address","Phones","Title"});
-      for(SignatureBuilder sigB : dataMap.values()){
-
-        if(sigB.isComplete()){
-          table.addRow(new String[]{sigB.get("email"),sigB.get("name"),sigB.get("org"),sigB.get("website"),sigB.get("addressPartOne")+sigB.get("addressPartTwo"),sigB.getPhoneHTML(),sigB.get("title")});
-        }
-      }
-      try{
-        Table.writeTableToCSV(table,"complete_data.csv");
-      }catch(Exception e){
-        e.printStackTrace();
-      }
-      System.out.println("\n\n\n\n");
-      //System.out.println(orgMap);
-
-
-    }catch(java.net.SocketTimeoutException e){
-      //call again
-      updateSignatures(dir,token,step);
-    }
-  }
-  private static void updateOrg(Directory dir, Set<String> finishedOrgs, int secsToWait) throws Exception
-  {//todo there must be a better way than just running threw the entired orglist everytime (it gets very slow near the end)
-    //todo get rid of this and replace with more generic function
-    CSVReader csvread = new CSVReader("./xcel sheets/orgtophone.csv");
-    Table table = csvread.getTable();
-
-
-    Set<String> alreadyDone = new HashSet<String>();
-    if(finishedOrgs != null) alreadyDone = finishedOrgs;
-    try{//got unknownhost and networkunreachable exception
-      OrgUnits orgunits = dir.orgunits().list("my_customer").execute();
-      List<OrgUnit> list = orgunits.getOrganizationUnits();
-
-      for(OrgUnit o : list){
-
-        String name = o.getName();
-        if(!alreadyDone.contains(name)){
-          if(!o.getDescription().equals("#ignore")){
-            if(table.containsKey(name)){
-              String fax = table.get(name,"phone");
-              OrgUnitDescription orgDes = new OrgUnitDescription(o.getDescription());
-
-              orgDes.put("phone",fax);
-
-              o.setDescription(orgDes.toString());
-              ArrayList<String> toUpdate = new ArrayList<>();
-              toUpdate.add(o.getName());
-              dir.orgunits().update("my_customer",toUpdate,o).execute();
-
-            }else{
-              //reports.err(name+" does not contain valid org info");
-
-
-
-
-            }
-          }
-          alreadyDone.add(name);
-          secsToWait = 1;
-        }else{
-          //skip this
-        }
-
-      }
-
-    }catch(java.net.SocketTimeoutException e){
-
-      updateOrg(dir,alreadyDone,secsToWait);
-    }catch(GoogleJsonResponseException gj){
-      try{
-
-        TimeUnit.SECONDS.sleep(secsToWait);
-      }catch(InterruptedException e){
-        throw e;
-      }
-
-      secsToWait *= 2;
-      if(secsToWait>16){
-        reports.err("updateOrg function failed to connect to cloud after many attempts");
-        throw gj;
-      }else{
-        updateOrg(dir,alreadyDone,secsToWait);
-      }
-    }catch(Exception e){
-      e.printStackTrace();
-    }
-  }
 
   //calling this function should run the signature update
-  private static void updateSignatures(Directory dir) throws IOException
-  {
-    //steps
-    //1)Build user profiles locally collecting info from GSuite (use a hashmap)
-    //2)apply BlackList
-    //3)update signatures
-    //4)apply rules
-    updateSignatures(dir,null,0);
-
-  }
-  private static void networkLooper(String functionName)
-  {
-    networkLooperWithToken(functionName, null);
-  }
-  private static void networkLooperWithToken(String functionName, String token)
-  {
-    boolean runAgain = false;
-
-    try{
-      Directory service = serviceManager.getDirectory();
-      do{
-        runAgain=false;//to prevent never ending loop
-        if(functionName.equals("mainfunction")){
-          token = mainFunction(token,service);
-          if(token!=null){
-            runAgain = true;
-          }
-        }else if(functionName.equals("checkForChangeInOrg")){
-          token = checkForChangeInOrg(token);
-          if(token!=null){
-            runAgain = true;
-          }
-        }else{
-          throw new IllegalArgumentException("functionName not found: " + functionName);
-        }
-
-      }while(runAgain);
-    }catch(java.net.SocketTimeoutException ste){
-      networkLooperWithToken(functionName,token);
-    }catch(Exception e){
-      reports.err(e.toString());
-    }
-  }
-  private static void updateOrg(Directory dir) throws Exception
-  {
-    updateOrg(dir,null,1);
-  }
-  private static void reviewOrgInfo(Directory dir)
-  {
-
-    try{
-
-
-      OrgUnits orgunits = dir.orgunits().list("my_customer").execute();
-      List<OrgUnit> list = orgunits.getOrganizationUnits();
-
-      for(OrgUnit o : list){
-
-
-        if(!o.getDescription().equals("#ignore"))new OrgUnitDescription(o.getDescription()).toString();
-
-
-        //skip this
-
-
-      }
-
-    }catch(Exception e){
-      e.printStackTrace();
-    }
-  }
-  private static String mainFunction(String pageToken, Directory service) throws java.net.SocketTimeoutException
-  {
-
-
-    try{
-      //System.out.println("Start");
-      //changeUserSignature(gmail,"jsmith@exampleopractog.com");
-      if(service == null){
-
-        service = serviceManager.getDirectory();
-      }
-      Directory.Users.List list = service.users().list()
-      .setCustomer("my_customer")
-      .setMaxResults(10)
-      .setOrderBy("email");
-
-      //System.out.println("before listing");
-
-      if(pageToken!=null)list.setPageToken(pageToken);
-      Users users = list.execute();
-      pageToken = users.getNextPageToken();
-      List<User> usersList = users.getUsers();
-
-      for(User u : usersList){
-        SignatureBuilder sb = new SignatureBuilder(u);
-        String company = sb.get("company");
-        if(company!=null){
-          if(sb.get("company").toLowerCase().equals("djt")){
-            System.out.println(sb.get("email"));
-          }
-
-        }
-      }
-
-      return pageToken;
-
-
-    }
-    catch(java.net.SocketTimeoutException ste){
-      throw ste;
-    }
-    catch(Exception e){
-      e.printStackTrace();
-      throw new RuntimeException("bad");
-    }
-  }
-  private static void specialRules()
-  {
-    //rule: boomy should have mobile in signature
-    if(dataMap.containsKey(Strings.avi_email)){
-      dataMap.get(Strings.avi_email).setDisplayMobile(true);
-    }
-    //rule: abe dont display fax and dont use main number
-    if(dataMap.containsKey(Strings.abe_email)){
-      dataMap.get(Strings.abe_email).remove("work_fax");
-      dataMap.get(Strings.abe_email).remove("work");
-    }
-    //rule: Change org names so that they display company name instead
-    CSVReader csvread = new CSVReader("./src/main/resources/companynames.csv");
-    Table table = csvread.getTable();
-    if(table == null){
-      reports.err("FATAL: Was unable to get company names for orgs in specialRules(), exiting to prevent poor signatures...");
-      exit(1);
-    }
-    for(SignatureBuilder sb : dataMap.values()){
-      String org = sb.get("org");
-      if(org == null){
-        reports.err("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature");
-        sb.put("org","");
-      }else if(!Strings.BlackList.contains(org)){
-
-        String newOrg = table.get(org,"company");
-        if(newOrg == null){
-          reports.err("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature");
-          sb.put("org","");
-        }else{
-
-          sb.put("org",newOrg);
-        }
-      }else{
-        reports.err("org company name blacklisted for "+sb.get("email")+", "+sb.get("org")+", removing company name from signature");
-        sb.put("org","");
-      }
-
-    }
-  }
-  private static String checkForChangeInOrg(String token) throws java.net.SocketTimeoutException
-  {//todo!, now we must make sure that things are called in order, not sure but threads may affect this
-    if(orgMap.isEmpty()||dataMap.isEmpty()){
-      reports.err("could not check for org changes due to lack of orgMap/dataMap initialization");
-      orgCheckFailed = true;
-    }
-    Directory service;
 
 
 
-    try{
-      //System.out.println("Start");
-      //changeUserSignature(gmail,"jsmith@exampleopractog.com");
-
-      service = serviceManager.getDirectory();
-      Directory.Users.List list = service.users().list()
-      .setCustomer("my_customer")
-      .setMaxResults(5)
-      .setOrderBy("email");
-
-      //System.out.println("before listing");
-
-      if(token!=null)list.setPageToken(token);
-      Users users = list.execute();
-      token = users.getNextPageToken();
-      List<User> usersList = users.getUsers();
-
-      for(User u : usersList){
-
-        if(!u.getSuspended()){
-          if(!Strings.BlackList.contains(u.getPrimaryEmail())&&!Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
-            String oldOrgName = null;
-            String newOrgName = null;
-            newOrgName = Helper.orgPathToName(u.getOrgUnitPath());
-            if(oldOrgTable.containsKey(u.getPrimaryEmail())){
-              try{
-                oldOrgName =Helper.orgPathToName(oldOrgTable.get(u.getPrimaryEmail(),"org"));
-              }catch(IllegalArgumentException e){
-                oldOrgName = "{could not find in old org table: "+ u.getPrimaryEmail() + "}";
-              }
-
-              if(!newOrgName.equals(oldOrgName)){
-                StringBuilder toSend = new StringBuilder();
-                SignatureBuilder sb = dataMap.get(u.getPrimaryEmail());
-                OrgUnitDescription oldOrg = orgMap.get(oldOrgName);
-                OrgUnitDescription newOrg = orgMap.get(newOrgName);
-                if(sb == null){
-                  reports.err( "could not find data on user "+u.getPrimaryEmail()+" when checking for orgunit change, will not update local info");
-
-                  orgCheckFailed = true;
-                }else if(oldOrg == null){
-                  reports.err( "could not find data from G-Suite on old orgunit "+oldOrgName+" when checking for orgunit change, will not update local info");
-                  orgCheckFailed = true;
-                }else if(newOrg == null){
-                  reports.err( "could not find data on from G-Suite new orgunit "+newOrgName+" when checking for orgunit change, will not update local info");
-                  orgCheckFailed = true;
-                }else{
-                  toSend.append("Fax on account: "+sb.get("work_fax")+"\n");
-                  toSend.append("Fax on old org: "+oldOrg.get("fax")+"\n");
-                  toSend.append("Fax on new org: "+newOrg.get("fax"));
-                  //todo make sure after testing that it actually does send to the correct ppl
-                  serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"ORGCHANGE for "+ u.getPrimaryEmail()+" from "+ oldOrgName + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),itCC);
-                  oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),Helper.orgPathToName(u.getOrgUnitPath())});
-                }
-              }
-
-            }else{// we havent seen this user before
-              StringBuilder toSend = new StringBuilder();
-              SignatureBuilder sb = dataMap.get(u.getPrimaryEmail());
-              OrgUnitDescription newOrg = orgMap.get(newOrgName);
-              if(sb == null){
-                reports.err( "could not find data on user "+u.getPrimaryEmail()+" when checking for orgunit change, will not update local info");
-
-                orgCheckFailed = true;
-              }else if(newOrg == null){
-                reports.err( "could not find data on from G-Suite new orgunit "+newOrgName+" when checking for orgunit change, will not update local info");
-                orgCheckFailed = true;
-              }else{
-                toSend.append("Fax on account: "+sb.get("work_fax")+"\n");
-
-                toSend.append("Fax on new org: "+newOrg.get("fax"));
-                //todo make sure after testing that it actually does send to the correct ppl
-
-                oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),Helper.orgPathToName(u.getOrgUnitPath())});
-                serviceManager.sendEmail(Strings.jesse_email,Strings.jesse_email,"ORGCHANGE for new user: "+ u.getPrimaryEmail() + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),itCC);
-              }
-            }
 
 
-          }
-        }else{//need to move this user to offload because he is suspended
-          u.setOrgUnitPath("/Offboard");
-          service.users().update(u.getPrimaryEmail(),u).execute();
-        }
-      }
-      return token;
 
 
-    }
-    catch(java.net.SocketTimeoutException ste){
-      throw ste;
-    }
-    catch(Exception e){
-      e.printStackTrace();
-      throw new RuntimeException("bad");
-    }
-
-  }
 }
 //todo! make sure that every Exception is accounted for

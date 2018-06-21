@@ -26,7 +26,7 @@ public class Strings
   static  String noah_email;
   static  String jesse_email;
   static  String tomer_email;
-
+  static String[] itCC;
   static Set<String> BlackList;
   static Set<String> Rollout;
 }

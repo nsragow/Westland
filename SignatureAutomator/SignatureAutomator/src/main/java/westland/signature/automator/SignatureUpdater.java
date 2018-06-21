@@ -89,7 +89,7 @@ public class SignatureUpdater
 
     //at this point we only need to apply the dataMap to the signatures
     for(String email : dataMap.keySet()){
-      //updateUserSignature(email,dataMap.get(email).toString());
+
       if(!dataMap.get(email).isComplete()){
         logs.append(email + " does not have sufficient information on their user+orgunit to create proper signature - signature not created\n");
       }else{

@@ -66,38 +66,39 @@ public class DataCollector
   private Directory dir;
   private Map<String,SignatureBuilder> dataMap;
   private Map<String,OrgUnitDescription> orgMap;
-  private Set<String> blackList;
   private boolean organized;
   private StringBuilder logs;
+  private HashSet<User> users;
   /**
   * make sure the ordering is correct in the defaultAddress
   */
-  public DataCollector(Directory dir, Set<String> blackList)
+  public DataCollector(Directory dir,StringBuilder logs)
   {
     this.dir = dir;
     organized = false;
+    users = new HashSet<>();
 
-  }
-  public Map<String,SignatureBuilder> getDataMap(StringBuilder logs)
-  {
+
+    setUpDataMap(null);
+    setUpOrgMap();
+    specialRules();
     this.logs = logs;
-    if(dataMap == null){
-      dataMap = new HashMap<>();
-      get_data_map(null);
-    }
-    if(orgMap == null){
-      orgMap = new HashMap<>();
-      orgMap = getOrgMap();
-    }
-    if(!organized){
-      specialRules();
-    }
-
+  }
+  public Map<String,SignatureBuilder> getDataMap()
+  {
     return dataMap;
   }
-  private void get_data_map(String token)
+  public Map<String,OrgUnitDescription> getOrgMap()
   {
-
+    return orgMap;
+  }
+  public Set<User> getUsers()
+  {
+    return users;
+  }
+  private void setUpDataMap(String token)
+  {
+    dataMap = new HashMap<>();
     try{
       do{
         Directory.Users.List list = dir.users().list().setCustomer("my_customer").setMaxResults(5).setOrderBy("email").setProjection("full");
@@ -106,7 +107,8 @@ public class DataCollector
         token = users.getNextPageToken();
         List<User> usersList = users.getUsers();
         for(User u : usersList){
-          if(!blackList.contains(u.getPrimaryEmail()) && !blackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
+          this.users.add(u);
+          if(!Strings.BlackList.contains(u.getPrimaryEmail()) && !Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
 
             dataMap.put(u.getPrimaryEmail(),new SignatureBuilder(u));
           }else{
@@ -115,16 +117,16 @@ public class DataCollector
         }
       }while(token!=null);
     }catch(SocketTimeoutException e){
-      get_data_map(token);
+      setUpDataMap(token);
     }catch(IOException e){
-      throw new RuntimeException("Could not connect to Google for DataMap initialization: "+e.toString());
+      throw new FatalException("FATAL: Could not connect to Google for DataMap initialization: "+e.toString());
     }
 
   }
 
-  private Map<String,OrgUnitDescription> getOrgMap()
+  private void setUpOrgMap()
   {
-
+    orgMap = new HashMap<>();
     try{
 
       OrgUnits orgunits = dir.orgunits().list("my_customer").execute();
@@ -144,10 +146,10 @@ public class DataCollector
 
 
     }catch(IOException e){
-      throw new RuntimeException("Could not connect to Google for OrgMap initialization: "+e.toString());
+      throw new FatalException("FATAL: Could not connect to Google for OrgMap initialization: "+e.toString());
     }
 
-    return orgMap;
+
   }
   private void specialRules()
   {
@@ -176,16 +178,27 @@ public class DataCollector
         String newOrg = table.get(org,"company");
         if(newOrg == null){
           sb.put("org","");
-          logs.append("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature");
+          logs.append("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature\n");
         }else{
           sb.put("org",newOrg);
         }
       }else{
-        logs.append("org company name blacklisted for "+sb.get("email")+", "+sb.get("org")+", removing company name from signature");
+        logs.append("org company name blacklisted for "+sb.get("email")+", "+sb.get("org")+", removing company name from signature\n");
         sb.put("org","");
       }
 
     }
-    organized = true;
+    for(SignatureBuilder sb : dataMap.values()){
+      String org = sb.get("org");
+      if(org == null)throw new FatalException("ran into unusual problem "+sb.get("email"));
+      OrgUnitDescription oud = orgMap.get(org);
+      if(oud != null){
+        sb.applyOUD(orgMap.get(org));
+      }else{
+        logs.append(sb.get("email")+ " has orgunit "  + org+", but that orgunit does not seem to have any info on gsuite");
+      }
+
+    }
+
   }
 }

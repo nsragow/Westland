@@ -21,10 +21,7 @@ public class Reports
   {
     StringBuilder log = new StringBuilder();
 
-    DateFormat df = new SimpleDateFormat("dd/MM/yy HH:mm:ss");
-    Date dateobj = new Date();
-    log.append(df.format(dateobj));
-    log.append(":\n\t");
+
     log.append(toFormat);
     log.append("\n");
     return log.toString();
@@ -43,10 +40,17 @@ public class Reports
   public String getReport()
   {
     StringBuilder toSend = new StringBuilder();
+    DateFormat df = new SimpleDateFormat("dd/MM/yy HH:mm:ss");
+    Date dateobj = new Date();
+    toSend.append("Runthrough --");
+    toSend.append(df.format(dateobj));
+    toSend.append("--\r\n\r\n");
     for(String s : logs){
+      toSend.append("\t");
       toSend.append("LOG: "+s);
     }
     for(String s : errors){
+      toSend.append("\t");
       toSend.append("ERROR: "+s);
     }
     if(errors.isEmpty()){
