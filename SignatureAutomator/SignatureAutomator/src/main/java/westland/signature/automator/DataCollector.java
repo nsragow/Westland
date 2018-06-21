@@ -67,23 +67,35 @@ public class DataCollector
   private Map<String,SignatureBuilder> dataMap;
   private Map<String,OrgUnitDescription> orgMap;
   private Set<String> blackList;
-
+  private boolean organized;
+  private StringBuilder logs;
   /**
   * make sure the ordering is correct in the defaultAddress
   */
   public DataCollector(Directory dir, Set<String> blackList)
   {
     this.dir = dir;
+    organized = false;
+
   }
-  public Map<String,SignatureBuilder> getDataMap()
+  public Map<String,SignatureBuilder> getDataMap(StringBuilder logs)
   {
+    this.logs = logs;
     if(dataMap == null){
       dataMap = new HashMap<>();
-      getDataMap(null);
+      get_data_map(null);
     }
+    if(orgMap == null){
+      orgMap = new HashMap<>();
+      orgMap = getOrgMap();
+    }
+    if(!organized){
+      specialRules();
+    }
+
     return dataMap;
   }
-  private void getDataMap(String token)
+  private void get_data_map(String token)
   {
 
     try{
@@ -103,38 +115,77 @@ public class DataCollector
         }
       }while(token!=null);
     }catch(SocketTimeoutException e){
-      getDataMap(token);
+      get_data_map(token);
     }catch(IOException e){
       throw new RuntimeException("Could not connect to Google for DataMap initialization: "+e.toString());
     }
 
   }
 
-  public Map<String,OrgUnitDescription> getOrgMap()
+  private Map<String,OrgUnitDescription> getOrgMap()
   {
-    if(orgMap == null){
-      try{
 
-        OrgUnits orgunits = dir.orgunits().list("my_customer").execute();
-        List<OrgUnit> list = orgunits.getOrganizationUnits();
+    try{
 
-        for(OrgUnit o : list){
-          if(!o.getDescription().equals("#ignore")){
-            OrgUnitDescription toAdd = new OrgUnitDescription(o.getDescription());
-            orgMap.put(o.getName(), toAdd);
-          }
+      OrgUnits orgunits = dir.orgunits().list("my_customer").execute();
+      List<OrgUnit> list = orgunits.getOrganizationUnits();
+
+      for(OrgUnit o : list){
+        if(!o.getDescription().equals("#ignore")){
+          OrgUnitDescription toAdd = new OrgUnitDescription(o.getDescription());
+          orgMap.put(o.getName(), toAdd);
         }
-        //add the standard westland org unit
-
-        OrgUnitDescription westland = new OrgUnitDescription();
-        westland.put("zip",Strings.root_org_zip).put("city",Strings.root_org_city).put("address",Strings.root_org_address).put("state",Strings.root_org_state).put("phone",Strings.root_org_phone).put("fax","");
-        orgMap.put("Westland",westland);
-
-
-      }catch(IOException e){
-        throw new RuntimeException("Could not connect to Google for OrgMap initialization: "+e.toString());
       }
+      //add the standard westland org unit
+
+      OrgUnitDescription westland = new OrgUnitDescription();
+      westland.put("zip",Strings.root_org_zip).put("city",Strings.root_org_city).put("address",Strings.root_org_address).put("state",Strings.root_org_state).put("phone",Strings.root_org_phone).put("fax","");
+      orgMap.put("Westland",westland);
+
+
+    }catch(IOException e){
+      throw new RuntimeException("Could not connect to Google for OrgMap initialization: "+e.toString());
     }
+
     return orgMap;
+  }
+  private void specialRules()
+  {
+    //rule: boomy should have mobile in signature
+    if(dataMap.containsKey(Strings.avi_email)){
+      dataMap.get(Strings.avi_email).setDisplayMobile(true);
+    }
+    //rule: abe dont display fax and dont use main number
+    if(dataMap.containsKey(Strings.abe_email)){
+      dataMap.get(Strings.abe_email).remove("work_fax");
+      dataMap.get(Strings.abe_email).remove("work");
+    }
+    //rule: Change org names so that they display company name instead
+    CSVReader csvread = new CSVReader("./src/main/resources/companynames.csv");
+    Table table = csvread.getTable();
+    if(table == null){
+      throw new FatalException("FATAL: Was unable to get company names for orgs in specialRules(), exiting to prevent poor data collection...");
+    }
+    for(SignatureBuilder sb : dataMap.values()){
+      String org = sb.get("org");
+      if(org == null){
+        logs.append("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature\n");
+        sb.put("org","");
+      }else if(!Strings.BlackList.contains(org)){
+
+        String newOrg = table.get(org,"company");
+        if(newOrg == null){
+          sb.put("org","");
+          logs.append("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature");
+        }else{
+          sb.put("org",newOrg);
+        }
+      }else{
+        logs.append("org company name blacklisted for "+sb.get("email")+", "+sb.get("org")+", removing company name from signature");
+        sb.put("org","");
+      }
+
+    }
+    organized = true;
   }
 }

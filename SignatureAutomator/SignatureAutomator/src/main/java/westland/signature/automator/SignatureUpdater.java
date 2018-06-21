@@ -85,7 +85,7 @@ public class SignatureUpdater
   private void updateSignatures() throws IOException
   {
 
-    specialRules();
+
 
     //at this point we only need to apply the dataMap to the signatures
     for(String email : dataMap.keySet()){
@@ -120,43 +120,6 @@ public class SignatureUpdater
       throw new LogException(logs.toString());
     }
   }
-  private void specialRules()
-  {
-    //rule: boomy should have mobile in signature
-    if(dataMap.containsKey(Strings.avi_email)){
-      dataMap.get(Strings.avi_email).setDisplayMobile(true);
-    }
-    //rule: abe dont display fax and dont use main number
-    if(dataMap.containsKey(Strings.abe_email)){
-      dataMap.get(Strings.abe_email).remove("work_fax");
-      dataMap.get(Strings.abe_email).remove("work");
-    }
-    //rule: Change org names so that they display company name instead
-    CSVReader csvread = new CSVReader("./src/main/resources/companynames.csv");
-    Table table = csvread.getTable();
-    if(table == null){
-      throw new FatalException("FATAL: Was unable to get company names for orgs in specialRules(), exiting to prevent poor signatures...");
-    }
-    for(SignatureBuilder sb : dataMap.values()){
-      String org = sb.get("org");
-      if(org == null){
-        logs.append("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature\n");
-        sb.put("org","");
-      }else if(!Strings.BlackList.contains(org)){
 
-        String newOrg = table.get(org,"company");
-        if(newOrg == null){
-          sb.put("org","");
-          logs.append("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature");
-        }else{
-          sb.put("org",newOrg);
-        }
-      }else{
-        logs.append("org company name blacklisted for "+sb.get("email")+", "+sb.get("org")+", removing company name from signature");
-        sb.put("org","");
-      }
-
-    }
-  }
 
 }
