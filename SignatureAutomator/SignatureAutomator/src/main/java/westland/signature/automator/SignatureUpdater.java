@@ -65,7 +65,7 @@ import javax.mail.internet.*;
 import org.apache.commons.codec.binary.Base64;
 
 
-public class Workflow
+public class SignatureUpdater
 {
   private Directory dir;
   private Map<String,SignatureBuilder> dataMap;
@@ -74,58 +74,48 @@ public class Workflow
 
   //private static Map<String,OrgUnitDescription> orgMap = null;
 
-  public Workflow(Map<String,SignatureBuilder> dataMap, Directory dir, ServiceManager serviceManager)
+  public SignatureUpdater(Map<String,SignatureBuilder> dataMap, ServiceManager serviceManager)
   {
     //this.orgMap = orgMap;
     this.dataMap = dataMap;
-    this.dir = dir;
     this.serviceManager = serviceManager;
     logs = new StringBuilder();
   }
 
-  private void updateSignatures(Directory dir, String token, int step) throws IOException
+  private void updateSignatures() throws IOException
   {
-    try{
 
+    specialRules();
 
-
-
-
-
-      specialRules();
-
-      //at this point we only need to apply the dataMap to the signatures
-      for(String email : dataMap.keySet()){
-        //updateUserSignature(email,dataMap.get(email).toString());
-        if(!dataMap.get(email).isComplete()){
-          logs.append(email + " does not have sufficient information on their user+orgunit to create proper signature - signature not created\n");
-        }else{
-          //System.out.println("updated sig for "+email);
-          serviceManager.changeUserSignature(email, SignatureGenerator.makeSignature(dataMap.get(email)));
-        }
-
+    //at this point we only need to apply the dataMap to the signatures
+    for(String email : dataMap.keySet()){
+      //updateUserSignature(email,dataMap.get(email).toString());
+      if(!dataMap.get(email).isComplete()){
+        logs.append(email + " does not have sufficient information on their user+orgunit to create proper signature - signature not created\n");
+      }else{
+        //System.out.println("updated sig for "+email);
+        serviceManager.changeUserSignature(email, SignatureGenerator.makeSignature(dataMap.get(email)));
       }
-      System.out.println("\n\n\n\n");
-      Table table = new Table(new String[]{"Email","Name","Org","Website","Address","Phones","Title"});
-      for(SignatureBuilder sigB : dataMap.values()){
 
-        if(sigB.isComplete()){
-          table.addRow(new String[]{sigB.get("email"),sigB.get("name"),sigB.get("org"),sigB.get("website"),sigB.get("addressPartOne")+sigB.get("addressPartTwo"),sigB.getPhoneHTML(),sigB.get("title")});
-        }
-      }
-      try{
-        Table.writeTableToCSV(table,"complete_data.csv");
-      }catch(Exception e){
-        e.printStackTrace();
-      }
-      System.out.println("\n\n\n\n");
-      //System.out.println(orgMap);
-
-
-    }catch(java.net.SocketTimeoutException e){
-      //call again
-      updateSignatures(dir,token,step);
     }
+    System.out.println("\n\n\n\n");
+    Table table = new Table(new String[]{"Email","Name","Org","Website","Address","Phones","Title"});
+    for(SignatureBuilder sigB : dataMap.values()){
+
+      if(sigB.isComplete()){
+        table.addRow(new String[]{sigB.get("email"),sigB.get("name"),sigB.get("org"),sigB.get("website"),sigB.get("addressPartOne")+sigB.get("addressPartTwo"),sigB.getPhoneHTML(),sigB.get("title")});
+      }
+    }
+    try{
+      Table.writeTableToCSV(table,"complete_data.csv");//todo what about updating drive?
+    }catch(Exception e){
+      e.printStackTrace();
+    }
+    System.out.println("\n\n\n\n");
+    //System.out.println(orgMap);
+
+
+
     if(logs.length() == 0){
       throw new LogException(logs.toString());
     }

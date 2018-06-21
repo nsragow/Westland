@@ -68,25 +68,12 @@ public class DataCollector
   private Map<String,OrgUnitDescription> orgMap;
   private Set<String> blackList;
 
-  private String root_org_zip;
-  private String root_org_city;
-  private String root_org_address;
-  private String root_org_state;
-  private String root_org_phone;
-
-
-
   /**
   * make sure the ordering is correct in the defaultAddress
   */
-  public DataCollector(Directory dir, Set<String> blackList, String[] defaultAddress)
+  public DataCollector(Directory dir, Set<String> blackList)
   {
     this.dir = dir;
-    root_org_zip = defaultAddress[3];
-    root_org_city = defaultAddress[1];
-    root_org_address = defaultAddress[0];
-    root_org_state = defaultAddress[2];
-    root_org_phone = defaultAddress[4];
   }
   public Map<String,SignatureBuilder> getDataMap()
   {
@@ -140,7 +127,7 @@ public class DataCollector
         //add the standard westland org unit
 
         OrgUnitDescription westland = new OrgUnitDescription();
-        westland.put("zip",root_org_zip).put("city",root_org_city).put("address",root_org_address).put("state",root_org_state).put("phone",root_org_phone).put("fax","");
+        westland.put("zip",Strings.root_org_zip).put("city",Strings.root_org_city).put("address",Strings.root_org_address).put("state",Strings.root_org_state).put("phone",Strings.root_org_phone).put("fax","");
         orgMap.put("Westland",westland);
 
 
