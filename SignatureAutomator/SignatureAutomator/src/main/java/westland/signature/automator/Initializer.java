@@ -22,7 +22,7 @@ public class Initializer
     sc.close();
     return toReturn;
   }
-  public static void overwriteLocalFilesWithDrive(Drive drive,Table fileInfo,Table paths) throws Exception
+  public static void overwriteLocalFilesWithDrive(Drive drive,Table fileInfo,Table paths,String workingDirectory) throws Exception
   {
     //Drive drive = getDrive("jesse.n@westlandreg.com");
 
@@ -32,7 +32,7 @@ public class Initializer
       String type = fileInfo.get(key,"export_type");
       String fileToOverwrite = paths.get(key,"val");
 
-      drive.files().export(fileid,type).executeMediaAndDownloadTo(new FileOutputStream(fileToOverwrite));
+      drive.files().export(fileid,type).executeMediaAndDownloadTo(new FileOutputStream(workingDirectory+fileToOverwrite));
     }
   }
 }

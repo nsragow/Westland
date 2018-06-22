@@ -72,6 +72,7 @@ public class ServiceConnection
   static Table STRINGS=null;
   static Table PATHS=null;
   static Table FILE_IDS=null;
+  static String workingDirectory = null;
 
   //error values
 
@@ -111,11 +112,11 @@ public class ServiceConnection
     Strings.exception_email_subject = STRINGS.get("exception_email_subject","val");
     Strings.local_user_orgs_not_updated_message = STRINGS.get("local_user_orgs_not_updated_message","val");
     Strings.suspended_org_path = STRINGS.get("suspended_org_path","val");
-    Strings.SERVICE_ACCOUNT_PKCS12_FILE_PATH = PATHS.get("p12","val");
-    Strings.black_list = PATHS.get("black_list","val");
-    Strings.roll_out = PATHS.get("roll_out","val");
-    Strings.current_user_orgs = PATHS.get("current_user_orgs","val");
-    Strings.log_file = PATHS.get("log_file","val");
+    Strings.SERVICE_ACCOUNT_PKCS12_FILE_PATH = workingDirectory+PATHS.get("p12","val");
+    Strings.black_list = workingDirectory+PATHS.get("black_list","val");
+    Strings.roll_out = workingDirectory+PATHS.get("roll_out","val");
+    Strings.current_user_orgs = workingDirectory+PATHS.get("current_user_orgs","val");
+    Strings.log_file = workingDirectory+PATHS.get("log_file","val");
     Strings.SERVICE_ACCOUNT_EMAIL = STRINGS.get("service_account","val");
     Strings.abe_email = STRINGS.get("abe_email","val");
     Strings.avi_email = STRINGS.get("avi_email","val");
@@ -123,6 +124,7 @@ public class ServiceConnection
     Strings.jesse_email = STRINGS.get("jesse_email","val");
     Strings.tomer_email = STRINGS.get("tomer_email","val");
     Strings.itCC = new String[]{Strings.tomer_email,Strings.abe_email,Strings.noah_email};
+    Strings.workingDirectory = ServiceConnection.workingDirectory;
 
   }
   /**
@@ -135,20 +137,20 @@ public class ServiceConnection
   private static void initilize()
   {
 
-    PATHS = Initializer.getTable("./src/main/resources/Paths.csv");
-    FILE_IDS = Initializer.getTable("./src/main/resources/drive_file_id.csv");
-    STRINGS = Initializer.getTable("./src/main/resources/Strings.csv");
+    PATHS = Initializer.getTable(workingDirectory+"/src/main/resources/Paths.csv");
+    FILE_IDS = Initializer.getTable(workingDirectory+"/src/main/resources/drive_file_id.csv");
+    STRINGS = Initializer.getTable(workingDirectory+"/src/main/resources/Strings.csv");
     stringInit();
-    serviceManager = new ServiceManager(STRINGS.get("main_account_it","val"),PATHS.get("p12","val"),STRINGS.get("service_account","val"));
+    serviceManager = new ServiceManager(Strings.main_account_it,Strings.SERVICE_ACCOUNT_PKCS12_FILE_PATH,Strings.SERVICE_ACCOUNT_EMAIL);
     try{
-      Initializer.overwriteLocalFilesWithDrive(serviceManager.getDrive(STRINGS.get("main_account_it","val")),FILE_IDS,PATHS);
+      Initializer.overwriteLocalFilesWithDrive(serviceManager.getDrive(Strings.main_account_it),FILE_IDS,PATHS,workingDirectory);
     }catch(Exception e){
       //todo deal with this Exception
       e.printStackTrace();
       System.exit(1);
     }
 
-    STRINGS = Initializer.getTable("./src/main/resources/Strings.csv");
+    STRINGS = Initializer.getTable(workingDirectory+"/src/main/resources/Strings.csv");
     stringInit();
 
     oldOrgTable = Initializer.getTable(Strings.current_user_orgs);
@@ -188,6 +190,7 @@ public class ServiceConnection
     StringBuilder logs = new StringBuilder();
     DataCollector dataCollector = null;
     try{
+
       dataCollector = new DataCollector(service,logs);
     }catch(FatalException e){
       emailOrErr(e);
@@ -198,15 +201,19 @@ public class ServiceConnection
     }
 
     Map<String,SignatureBuilder> dataMap = dataCollector.getDataMap();
+    SignatureUpdater sU = new SignatureUpdater(dataMap,serviceManager);
     try{
       //todo make sure signatures are updated
-      new SignatureUpdater(dataMap,serviceManager);
+      sU.updateSignatures();
     }
     catch(FatalException e){//todo redo the response
       emailOrErr(e);
       exit(1);
     }catch(LogException e){//todo redo the response
       emailOrLog(e);
+    }catch(IOException e){
+      emailOrErr(e);
+      exit(1);
     }
     OrgMovementDetector orgDetector = new OrgMovementDetector(dataCollector.getUsers(),dataCollector.getDataMap(),dataCollector.getOrgMap(),serviceManager);
     try{
@@ -226,9 +233,10 @@ public class ServiceConnection
 
     exit(0);
   }
-
+  //args must have workingdirectory as first arg and it must end without a /
   public static void main(String[] args)
   {
+    workingDirectory = args[0];
 
     reports = new Reports();
     try{
@@ -260,7 +268,9 @@ public class ServiceConnection
   private static void exit(int i)
   {
     try{
-      serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"[Automated] G-Suite Manager Error Reports",reports.getReport(),Strings.itCC);
+      if(reports.hasReport()){
+        serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"[Automated] G-Suite Manager Error Reports",reports.getReport(),Strings.itCC);
+      }
     }catch(Exception e){
       e.printStackTrace();
       reports.err(Helper.exceptionToString(e));

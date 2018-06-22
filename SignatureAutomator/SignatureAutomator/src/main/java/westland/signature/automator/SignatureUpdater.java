@@ -80,9 +80,10 @@ public class SignatureUpdater
     this.dataMap = dataMap;
     this.serviceManager = serviceManager;
     logs = new StringBuilder();
+
   }
 
-  private void updateSignatures() throws IOException
+  public void updateSignatures() throws IOException
   {
 
 
@@ -107,7 +108,7 @@ public class SignatureUpdater
       }
     }
     try{
-      Table.writeTableToCSV(table,"complete_data.csv");//todo what about updating drive?
+      //Table.writeTableToCSV(table,"complete_data.csv");//todo what about updating drive?
     }catch(Exception e){
       e.printStackTrace();
     }
@@ -116,7 +117,7 @@ public class SignatureUpdater
 
 
 
-    if(logs.length() == 0){
+    if(logs.length() != 0){
       throw new LogException(logs.toString());
     }
   }

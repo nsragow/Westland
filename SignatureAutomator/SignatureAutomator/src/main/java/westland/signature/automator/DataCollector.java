@@ -77,12 +77,12 @@ public class DataCollector
     this.dir = dir;
     organized = false;
     users = new HashSet<>();
+    this.logs = logs;
 
 
     setUpDataMap(null);
     setUpOrgMap();
     specialRules();
-    this.logs = logs;
   }
   public Map<String,SignatureBuilder> getDataMap()
   {
@@ -153,6 +153,22 @@ public class DataCollector
   }
   private void specialRules()
   {
+    for(SignatureBuilder sb : dataMap.values()){
+      String org = sb.get("org");
+      if(org == null)throw new FatalException("ran into unusual problem "+sb.get("email"));
+      OrgUnitDescription oud = orgMap.get(org);
+      if(oud != null){
+        sb.applyOUD(orgMap.get(org));
+      }else{
+        String email = sb.get("email");
+
+        logs.append(email);
+        logs.append(" has orgunit ");
+        logs.append(org);
+        logs.append(", but that orgunit does not seem to have any info on gsuite\r\n");
+      }
+
+    }
     //rule: boomy should have mobile in signature
     if(dataMap.containsKey(Strings.avi_email)){
       dataMap.get(Strings.avi_email).setDisplayMobile(true);
@@ -163,7 +179,7 @@ public class DataCollector
       dataMap.get(Strings.abe_email).remove("work");
     }
     //rule: Change org names so that they display company name instead
-    CSVReader csvread = new CSVReader("./src/main/resources/companynames.csv");
+    CSVReader csvread = new CSVReader(Strings.workingDirectory+"/src/main/resources/companynames.csv");
     Table table = csvread.getTable();
     if(table == null){
       throw new FatalException("FATAL: Was unable to get company names for orgs in specialRules(), exiting to prevent poor data collection...");
@@ -185,17 +201,6 @@ public class DataCollector
       }else{
         logs.append("org company name blacklisted for "+sb.get("email")+", "+sb.get("org")+", removing company name from signature\n");
         sb.put("org","");
-      }
-
-    }
-    for(SignatureBuilder sb : dataMap.values()){
-      String org = sb.get("org");
-      if(org == null)throw new FatalException("ran into unusual problem "+sb.get("email"));
-      OrgUnitDescription oud = orgMap.get(org);
-      if(oud != null){
-        sb.applyOUD(orgMap.get(org));
-      }else{
-        logs.append(sb.get("email")+ " has orgunit "  + org+", but that orgunit does not seem to have any info on gsuite");
       }
 
     }

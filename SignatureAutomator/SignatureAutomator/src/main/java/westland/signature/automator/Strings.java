@@ -29,4 +29,5 @@ public class Strings
   static String[] itCC;
   static Set<String> BlackList;
   static Set<String> Rollout;
+  static String workingDirectory;
 }

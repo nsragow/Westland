@@ -117,6 +117,9 @@ public class SignatureBuilder
     if(phones.containsKey("work")){
       toReturn.append("O: "+phones.get("work")+" ");
       if(pairs.containsKey("ext")&&!pairs.get("ext").equals("")){
+
+        //System.out.println(this.get("email")+" : " + pairs.get("ext"));
+
         toReturn.append("X: "+pairs.get("ext"));
       }
       needBRbeforeAddingAnotherLine = true;

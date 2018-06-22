@@ -35,6 +35,10 @@ public class Reports
 
 
   }
+  public boolean hasReport()
+  {
+    return !errors.isEmpty() || !logs.isEmpty();
+  }
 
 //sendErrorReport + what to do with error
   public String getReport()
