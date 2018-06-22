@@ -7,10 +7,10 @@
 apply plugin: 'java'
 apply plugin: 'application'
 
-mainClassName = 'westland.signature.automator.ServiceConnection'
+mainClassName = 'westland.signature.automator.Main'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
-version = '1.0'
+version = '1.1'
 
 repositories {
     mavenCentral()
@@ -20,14 +20,14 @@ task fatJar(type: Jar) {
 	manifest {
         attributes 'Implementation-Title': 'Gradle Jar File Example',
         	'Implementation-Version': version,
-        	'Main-Class': 'westland.signature.automator.ServiceConnection'
+        	'Main-Class': 'westland.signature.automator.Main'
     }
     baseName = project.name + '-all'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
 run {
-    args = ["C:/Users/Westland/NoahsProjects/Westland/SignatureAutomator/SignatureAutomator", "--myarg2"]
+    args = ["C:/Users/Westland/NoahsProjects/Westland/SignatureAutomator/SignatureAutomator", "-all"]
 }
 
 

@@ -65,7 +65,7 @@ import javax.mail.*;
 import javax.mail.internet.*;
 import org.apache.commons.codec.binary.Base64;
 
-public class ServiceConnection
+public class Main
 {//clean this up todo make non static
 
   static String[] itCC = null;
@@ -124,7 +124,7 @@ public class ServiceConnection
     Strings.jesse_email = STRINGS.get("jesse_email","val");
     Strings.tomer_email = STRINGS.get("tomer_email","val");
     Strings.itCC = new String[]{Strings.tomer_email,Strings.abe_email,Strings.noah_email};
-    Strings.workingDirectory = ServiceConnection.workingDirectory;
+    Strings.workingDirectory = Main.workingDirectory;
 
   }
   /**
@@ -164,7 +164,7 @@ public class ServiceConnection
       throw new RuntimeException();
     }
   }
-  private static void run()
+  private static void fullRun()
   {
 
     try{
@@ -225,25 +225,77 @@ public class ServiceConnection
     }catch(LogException e){
       emailOrLog(e);
     }
+  }
+
+  private static void orgCheck()
+  {
+
+    try{
+
+      initilize();
+    }catch(Exception e){
+      reports.err(Helper.exceptionToString(e));
+      exit(1);
+    }
+
+    Directory service = null;
+    Gmail gmail = null;
+    try{
+      service = serviceManager.getDirectory();
 
 
 
+    }
+    catch(Exception e){
+      emailOrErr(e);
+      exit(1);
+    }
+    StringBuilder logs = new StringBuilder();
+    DataCollector dataCollector = null;
+    try{
 
+      dataCollector = new DataCollector(service,logs);
+    }catch(FatalException e){
+      emailOrErr(e);
+      exit(1);
+    }
+    if(logs.length() != 0){
+      emailOrLog(new RuntimeException(logs.toString()));
+    }
 
+    OrgMovementDetector orgDetector = new OrgMovementDetector(dataCollector.getUsers(),dataCollector.getDataMap(),dataCollector.getOrgMap(),serviceManager);
+    try{
+      orgDetector.checkForChangeInOrg();
+    }catch(LogException e){
+      emailOrLog(e);
+    }
 
-    exit(0);
   }
   //args must have workingdirectory as first arg and it must end without a /
   public static void main(String[] args)
   {
+    String option = null;
     workingDirectory = args[0];
+    if(args.length > 1){
+      option = args[1];
+    }else{
+      option = "-all";
+    }
 
     reports = new Reports();
-    try{
-      run();
-    }catch(Exception e){
+    switch(option){
+      case "-all":
+        try{
+          fullRun();
+        }catch(Exception e){
 
-      reports.err(Helper.exceptionToString(e));
+          reports.err(Helper.exceptionToString(e));
+        }
+        break;
+      case "-orgcheck":
+        orgCheck();
+        break;
+
     }
     exit(0);
   }
