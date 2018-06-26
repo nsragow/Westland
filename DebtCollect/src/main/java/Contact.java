@@ -7,6 +7,7 @@ public class Contact
   private String id;
   private String type;
   private String suffix;
+  private String addr;
 
   private Contact()
   {
@@ -61,6 +62,10 @@ public class Contact
   {
     return new Builder();
   }
+  public String getAddress()
+  {
+    return addr;
+  }
   public String getFirstName()
   {
     return firstName;
@@ -98,7 +103,8 @@ public class Contact
     private String id;
     private String type;
     private String suffix;
-    private int completeCount = 7;
+    private String addr;
+    private int completeCount = 8;
     private Builder()
     {
 
@@ -114,11 +120,20 @@ public class Contact
         c.id = this.id;
         c.type = this.type;
         c.suffix = this.suffix;
+        c.addr = this.addr;
         completeCount--;
         return c;
       }else{
         return null;
       }
+    }
+    public Builder setAddr(String s)
+    {
+      if(addr == null){
+        addr = s;
+        completeCount--;
+      }
+      return this;
     }
     public Builder setFirstName(String s)
     {

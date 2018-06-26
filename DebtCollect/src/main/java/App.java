@@ -10,7 +10,9 @@ import java.util.*;
 
 public class App {
 
-  public static void main(String[] args)throws Exception {
+  public static void main(String[] args)throws Exception
+  {
+    //FileTreater.main(null);
     dataPrep();
 
   }
@@ -176,7 +178,7 @@ public class App {
     System.out.println(cutD+ " total cut "+ cutL);
     System.out.println("final: " + totalD+cutD);
     System.out.println("\r\n\r\n-----------------------------\r\n");
-    f.write("firstName,middleName,lastName,suffix,contactType,value,Desc,Social\r\n");
+    f.write("firstName,middleName,lastName,suffix,contactType,value,Desc,Social,Addr\r\n");
     for(Collection val : debts){
       StringBuilder firstName = new StringBuilder();
       StringBuilder middleName = new StringBuilder();
@@ -184,6 +186,7 @@ public class App {
       StringBuilder suffix = new StringBuilder();
       StringBuilder type = new StringBuilder();
       StringBuilder ssn = new StringBuilder();
+      StringBuilder addr = new StringBuilder();
       boolean timeTwo = false;
       for(Contact contact : val.getContacts()){
 
@@ -193,11 +196,12 @@ public class App {
         suffix.append(contact.getSuffix());
         type.append(contact.getType());
         ssn.append(contact.getSSN());
+        addr.append(contact.getAddress());
 
         timeTwo = true;
       }
       f.write("\""+firstName.toString() +"\""+ ","+"\""+ middleName.toString() +"\""+ "," +"\""+lastName.toString()+"\",\""+suffix.toString() +"\""+ ","+"\""+ type.toString()+"\""+","+"\"");
-      f.write(val.totalCollectionValue()+"\""+","+"\""+val.getMatter().getShortDesc()+" : "+val.getMatter().getDesc()+"\",\""+ssn.toString()+"\"\r\n");
+      f.write(val.totalCollectionValue()+"\""+","+"\""+val.getMatter().getShortDesc()+" : "+val.getMatter().getDesc()+"\",\""+ssn.toString()+"\",\""+addr.toString()+"\"\r\n");
     }
 
     System.out.println("\r\n\r\n-----------------------------\r\n");

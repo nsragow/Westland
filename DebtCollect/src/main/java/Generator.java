@@ -26,6 +26,7 @@ public class Generator
         b.setSuffix(toConvert.get(4));
         b.setType(toConvert.get(5));
         b.setSSN(toConvert.get(6));
+        b.setAddr(toConvert.get(7));
         toReturn.add(b.build());
       }
       return toReturn;
