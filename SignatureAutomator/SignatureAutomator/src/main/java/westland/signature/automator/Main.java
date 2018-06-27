@@ -227,8 +227,11 @@ public class Main
     try{
       ls.runLiveSheet();
     }catch(IOException e){
-      e.printStackTrace();
-      //emailOrErr(e);
+
+      emailOrErr(e);
+      exit(1);
+    }catch(LogException e){
+      emailOrLog(e);
       exit(1);
     }
   }
@@ -307,12 +310,25 @@ public class Main
       case "-livesheet":
         liveSheetRun();
         break;
-
+      case "-shortCheck":
+        liveSheetRun();
+        orgCheck();
+        break;
+      case "-server":
+        runServer();
+        break;
+      default:
+        reports.err("Improper commandline argument: " + option+ "\n");
     }
     exit(0);
   }
+  private static void runServer()
+  {
+    new WatchServer().run();
+  }
   private static void emailOrErr(Exception e)
   {
+    System.out.println(Helper.exceptionToString(e));
     try{
       serviceManager.sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,Helper.exceptionToString(e));
     }catch(Exception b)
@@ -322,6 +338,7 @@ public class Main
   }
   private static void emailOrLog(Exception e)
   {
+    System.out.println(Helper.exceptionToString(e));
     try{
       serviceManager.sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,Helper.exceptionToString(e));
     }catch(Exception b)

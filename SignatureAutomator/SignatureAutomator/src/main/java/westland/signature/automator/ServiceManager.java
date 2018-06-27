@@ -111,7 +111,7 @@ public class ServiceManager
   }
   public User getUser(String email) throws IOException
   {
-    return getDirectory().users().get(email).execute();
+    return getDirectory().users().get(email).setProjection("full").execute();
   }
   protected Drive getDrive(String email)
   {
