@@ -167,13 +167,7 @@ public class Main
   private static void fullRun()
   {
 
-    try{
 
-      initilize();
-    }catch(Exception e){
-      reports.err(Helper.exceptionToString(e));
-      exit(1);
-    }
 
     Directory service = null;
     Gmail gmail = null;
@@ -227,16 +221,22 @@ public class Main
     }
   }
 
+  private static void liveSheetRun()
+  {
+    LiveSheet ls = new LiveSheet(serviceManager);
+    try{
+      ls.runLiveSheet();
+    }catch(IOException e){
+      e.printStackTrace();
+      //emailOrErr(e);
+      exit(1);
+    }
+  }
+
   private static void orgCheck()
   {
 
-    try{
 
-      initilize();
-    }catch(Exception e){
-      reports.err(Helper.exceptionToString(e));
-      exit(1);
-    }
 
     Directory service = null;
     Gmail gmail = null;
@@ -247,6 +247,7 @@ public class Main
 
     }
     catch(Exception e){
+
       emailOrErr(e);
       exit(1);
     }
@@ -283,6 +284,14 @@ public class Main
     }
 
     reports = new Reports();
+    try{
+
+      initilize();
+    }catch(Exception e){
+      reports.err(Helper.exceptionToString(e));
+      exit(1);
+    }
+
     switch(option){
       case "-all":
         try{
@@ -294,6 +303,9 @@ public class Main
         break;
       case "-orgcheck":
         orgCheck();
+        break;
+      case "-livesheet":
+        liveSheetRun();
         break;
 
     }

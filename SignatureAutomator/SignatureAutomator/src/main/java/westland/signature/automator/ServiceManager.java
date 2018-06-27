@@ -1,5 +1,6 @@
 package westland.signature.automator;
 
+import com.google.api.services.admin.directory.model.User;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.services.gmail.model.Draft;
@@ -12,6 +13,7 @@ import com.google.api.services.admin.directory.DirectoryScopes;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.GmailScopes;
+import com.google.api.client.http.FileContent;
 import javax.mail.*;
 import javax.mail.internet.*;
 import org.apache.commons.codec.binary.Base64;
@@ -24,6 +26,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.IOException;
+import com.google.api.services.drive.model.File;
 
 public class ServiceManager
 {
@@ -65,6 +68,17 @@ public class ServiceManager
   {
     return new JacksonFactory();
   }
+  public void updateSheet(String fileID, String name, java.io.File file, String accountName) throws IOException
+  {
+    File fileMetadata = new File();
+    fileMetadata.setName(name);
+    fileMetadata.setMimeType("application/vnd.google-apps.spreadsheet");
+
+
+    FileContent mediaContent = new FileContent("text/csv", file);
+    getDrive(accountName).files().update(fileID, fileMetadata, mediaContent).execute();
+
+  }
   protected Gmail getGmail(String userEmail)
   {
     HttpTransport httpTransport = getHttpTransport();
@@ -94,6 +108,10 @@ public class ServiceManager
   protected Directory getDirectory()
   {
     return directory;
+  }
+  public User getUser(String email) throws IOException
+  {
+    return getDirectory().users().get(email).execute();
   }
   protected Drive getDrive(String email)
   {
