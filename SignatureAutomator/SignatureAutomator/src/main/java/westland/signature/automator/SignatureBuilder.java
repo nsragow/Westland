@@ -173,7 +173,7 @@ public class SignatureBuilder
       this.put("website","westlandreg.com");
     }
   }
-  private static List<ArrayMap<String,Object>> objectToArrayMapList(Object toCast) throws IllegalArgumentException
+  protected static List<ArrayMap<String,Object>> objectToArrayMapList(Object toCast) throws IllegalArgumentException
   {
     if(toCast == null){
       throw new NullPointerException("trying to cast null object");

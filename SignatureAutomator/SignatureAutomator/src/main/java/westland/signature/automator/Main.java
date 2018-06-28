@@ -310,7 +310,7 @@ public class Main
       case "-livesheet":
         liveSheetRun();
         break;
-      case "-shortCheck":
+      case "-shortcheck":
         liveSheetRun();
         orgCheck();
         break;
