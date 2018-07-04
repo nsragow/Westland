@@ -136,6 +136,10 @@ public class Attribute
     }
     return toReturn.toString();
   }
+  protected static int getAttributesLength(byte[] header)
+  {
+    return Helper.bytesToInt(header,4,4);
+  }
   //should be byte[] of length 64
   protected Attribute(byte[] header)
   {

@@ -59,4 +59,32 @@ public class Helper
 
 
   }
+  public static String bytesToString(byte[] bytes, int offset, int length, String charset)
+  {
+
+    byte[] address = new byte[length];
+    int i = 0;
+    for(; i < length; i++){
+      address[i] = bytes[i+offset];
+
+    }
+    String toReturn;
+    try{
+      toReturn = new String(address,charset);
+    }catch(Exception e){
+      throw new RuntimeException("charset not supported");
+    }
+    return toReturn;
+
+
+  }
+  public static String bytesToHexString(byte[] a, int offset, int length)
+  {
+    StringBuilder sb = new StringBuilder();
+    for(int i = 0; i < length; i++){
+      sb.append(String.format("%02x", a[i+offset]));
+
+    }
+    return sb.toString();
+  }
 }

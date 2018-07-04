@@ -1,5 +1,6 @@
 package westland.ntfs.uploader;
 
+import java.util.*;
 
 public class NTFS
 {
@@ -40,6 +41,8 @@ public class NTFS
   protected final int INDEX_OF_CHECKSUM = 80;
   protected int CHECKSUM;
 
+  private HashSet<MFTEntry> entries;
+
   public NTFS(byte[] cluster)
   {
     BYTES_PER_SECTOR = Helper.bytesToInt(cluster, INDEX_OF_BYTES_PER_SECTOR, 2);
@@ -58,10 +61,56 @@ public class NTFS
     CLUSTERS_PER_INDEX_BUFFER = Helper.bytesToInt(cluster, INDEX_OF_CLUSTERS_PER_INDEX_BUFFER, 1);
     VOLUME_SERIAL_NUMBER = Helper.bytesToLong(cluster, INDEX_OF_VOLUME_SERIAL_NUMBER, 8);
     CHECKSUM = Helper.bytesToInt(cluster, INDEX_OF_CHECKSUM, 4);
+
+    entries = new HashSet<>();
+  }
+  public void addEntry(MFTEntry entry)
+  {
+    entries.add(entry);
+  }
+  public Set<MFTEntry> getEntries()
+  {
+    return entries;
   }
   public long relativeByteOfMFT()
   {
     return MFT_CLUSTER * (long) BYTES_PER_SECTOR * (long) SECTORS_PER_CLUSTER;
+  }
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    sb.append("BYTES_PER_SECTOR: "+ this.BYTES_PER_SECTOR);
+    sb.append("\n");
+    sb.append("SECTORS_PER_CLUSTER: "+ this.SECTORS_PER_CLUSTER);
+    sb.append("\n");
+    sb.append("RESERVED_SECTORS: "+ this.RESERVED_SECTORS);
+    sb.append("\n");
+    sb.append("ALWAYS_ZERO: "+ this.ALWAYS_ZERO);
+    sb.append("\n");
+    sb.append("MEDIA_DESCRIPTOR: "+ this.MEDIA_DESCRIPTOR);
+    sb.append("\n");
+    sb.append("SECOND_ALWAYS_ZERO: "+ this.SECOND_ALWAYS_ZERO);
+    sb.append("\n");
+    sb.append("SECTORS_PER_TRACK: "+ this.SECTORS_PER_TRACK);
+    sb.append("\n");
+    sb.append("NUMBER_OF_HEADS: "+ this.NUMBER_OF_HEADS);
+    sb.append("\n");
+    sb.append("HIDDEN_SECTORS: "+ this.HIDDEN_SECTORS);
+    sb.append("\n");
+    sb.append("TOTAL_SECTORS: "+ this.TOTAL_SECTORS);
+    sb.append("\n");
+    sb.append("MFT_CLUSTER: "+ this.MFT_CLUSTER);
+    sb.append("\n");
+    sb.append("MFT_MIRROR_CLUSTER: "+ this.MFT_MIRROR_CLUSTER);
+    sb.append("\n");
+    sb.append("CLUSTERS_PER_FILE_RECORD_SEGMENT: "+ this.CLUSTERS_PER_FILE_RECORD_SEGMENT);
+    sb.append("\n");
+    sb.append("CLUSTERS_PER_INDEX_BUFFER: "+ this.CLUSTERS_PER_INDEX_BUFFER);
+    sb.append("\n");
+    sb.append("VOLUME_SERIAL_NUMBER: "+ this.VOLUME_SERIAL_NUMBER);
+    sb.append("\n");
+    sb.append("CHECKSUM: "+ this.CHECKSUM);
+    return sb.toString();
   }
 
 

@@ -1,5 +1,6 @@
 package westland.ntfs.uploader;
 
+import java.util.*;
 
 public class MFTEntry
 {
@@ -44,6 +45,10 @@ public class MFTEntry
   int nextAttributeID;
   int numberOfRecord;
 
+  boolean free;
+
+  HashMap<Integer,Attribute> attributeMap;
+
   public MFTEntry(byte[] data)
   {
     magicNumber = Helper.bytesToString(data,indexOfmagicNumber,lengthOfmagicNumber);
@@ -59,6 +64,97 @@ public class MFTEntry
     fileReferenceToTheBaseOfFileRecord = Helper.bytesToLong(data,indexOffileReferenceToTheBaseOfFileRecord,lengthOffileReferenceToTheBaseOfFileRecord);
     nextAttributeID = Helper.bytesToInt(data,indexOfnextAttributeID,lengthOfnextAttributeID);
     numberOfRecord = Helper.bytesToInt(data,indexOfnumberOfRecord,lengthOfnumberOfRecord);
+    attributeMap = new HashMap<>();
+    free = false;
+    parseAttributes(data);
+  }
+
+  private void parseAttributes(byte[] data)
+  {
+    int offsetToNext = 0;
+    boolean parseAgain = true;
+
+    if(Helper.bytesToInt(data,this.offsetToFirstAttribute+offsetToNext,4) == 0xFFFFFFFF){
+      this.setFree();
+    }else{
+      byte[] bytes;
+      while(parseAgain){
+        bytes = new byte[64];
+        for(int i = 0; i < bytes.length; i++){
+          bytes[i] = data[this.offsetToFirstAttribute+offsetToNext+i];
+        }
+        bytes = new byte[Attribute.getAttributesLength(bytes)];
+
+        for(int i = 0; i < bytes.length; i++){
+          bytes[i] = data[this.offsetToFirstAttribute+offsetToNext+i];
+        }
+        Attribute attribute = null;
+        try{
+          attribute = Attribute.getAttribute(bytes);
+          offsetToNext+=attribute.get_length();
+          this.addAttribute(attribute);
+        }catch(RuntimeException e){
+          e.printStackTrace();
+          parseAgain = false;
+        }
+        if(Helper.bytesToInt(data,this.offsetToFirstAttribute+offsetToNext,4) == 0xFFFFFFFF){
+          parseAgain = false;
+        }
+
+      }
+    }
+  }
+
+  public void setFree()
+  {
+    free = true;
+  }
+  public boolean isFree()
+  {
+    return free;
+  }
+  public boolean hasFileName()
+  {
+    return this.getAttribute(48)!=null;
+  }
+  public boolean isDirectory()
+  {
+
+    return (flags&0x00000002) == 2;
+  }
+
+  public void addAttribute(Attribute toAdd)
+  {
+    attributeMap.put(toAdd.get_attributeType(),toAdd);
+  }
+  public Attribute getAttribute(int type)
+  {
+    return attributeMap.get(type);
+  }
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    String name;
+    if(this.getAttribute(48)!=null){
+      name = ((FileName_Attribute)this.getAttribute(48)).getName();
+    }else{
+      name = "FileName not found";
+    }
+    sb.append("-MFT_ENTRY-");
+    sb.append("\n");
+    if(free){
+      sb.append("Entry is free");
+    }else{
+      sb.append("file name: ");
+      sb.append(name);
+      sb.append("\n");
+      sb.append("magic number string: ");
+      sb.append(magicNumber);
+      sb.append("\n");
+      sb.append("Directory: ");
+      sb.append(isDirectory());
+    }
+    return sb.toString();
   }
 
 

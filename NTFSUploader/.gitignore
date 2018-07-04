@@ -3,4 +3,5 @@
 /build
 /reports
 /src/main/resources
+/src/main/resource
 /gradlew*
