@@ -24,6 +24,13 @@ public class Attribute
   long allocatedSizeOfAttribute;
   long realSizeOfAttribute;
   long initializedDataSizeOfStream;
+
+  //named
+  String attributeName;
+  public String get_attributeName()
+  {
+    return attributeName;
+  }
   public int get_attributeType()
   {
     return attributeType;
@@ -111,6 +118,8 @@ public class Attribute
     toReturn.append("\n");
     toReturn.append("get_attributeID(): "+this.get_attributeID());
     toReturn.append("\n");
+    toReturn.append("get_attributeName(): "+this.get_attributeName());
+    toReturn.append("\n");
     if(this.get_resident()){
       toReturn.append("get_lengthOfAttribute(): "+this.get_lengthOfAttribute());
       toReturn.append("\n");
@@ -163,6 +172,9 @@ public class Attribute
       allocatedSizeOfAttribute = Helper.bytesToLong(header,40,8);
       realSizeOfAttribute = Helper.bytesToLong(header,48,8);
       initializedDataSizeOfStream = Helper.bytesToLong(header,56,8);
+    }
+    if(nameLength!=0){
+      attributeName = Helper.bytesToString(header,offsetToName,2*nameLength,"UTF-16LE");
     }
   }
 

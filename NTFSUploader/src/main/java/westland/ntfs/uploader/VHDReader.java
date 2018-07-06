@@ -49,37 +49,48 @@ public class VHDReader
     vhd.seek(startOfNtfsPartition);
     vhd.read(bytes);
     ntfs = new NTFS(bytes);
-    System.out.println(ntfs.toString());
-    System.out.println();
+
     int offsetToEntry = 0;
     int i = 0;
 
     MFTEntry nextEntry;
-    while(i < 24){
+    while(i <12){
       nextEntry = getEntry(startOfNtfsPartition+ntfs.relativeByteOfMFT(),i);
+
       if(!nextEntry.isFree() && nextEntry.hasFileName()){
 
         ntfs.addEntry(nextEntry);
+        if(nextEntry.hasFileName()){
+          if(nextEntry.getName().toLowerCase().equals(".")){
+
+            System.out.println("found dot");
+            recurseThroughFileStructure(startOfNtfsPartition+ntfs.relativeByteOfMFT(), nextEntry);
+            System.out.println("done with dot");
+
+          }
+        }
       }
       i++;
     }
-    i = 24;
-    //todo this does not pick up every file, some are stored later on
-    while(!(nextEntry=getEntry(startOfNtfsPartition+ntfs.relativeByteOfMFT(),i)).isFree()){
 
-      ntfs.addEntry(nextEntry);
-      i++;
-    }
-    for(MFTEntry entry : ntfs.getEntries()){
-      System.out.println(entry.toString());
-      System.out.println();
-    }
+
 
   }
-  private MFTEntry getEntry(long offset, int index) throws Exception
+  private void recurseThroughFileStructure(long offset, MFTEntry entry) throws Exception
+  {
+
+    System.out.println(entry.getName());
+    if(entry.isDirectory()){
+      for(long l : entry.getSubFiles()){
+        recurseThroughFileStructure(offset,getEntry(offset,l));
+      }
+    }
+  }
+  private MFTEntry getEntry(long offset, long index) throws Exception
   {
     byte[] bytes = new byte[1024];
     vhd.seek(offset+index*1024);
+
     vhd.read(bytes);
     return new MFTEntry(bytes);
   }

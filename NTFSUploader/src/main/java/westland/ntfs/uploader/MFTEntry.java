@@ -47,7 +47,7 @@ public class MFTEntry
 
   boolean free;
 
-  HashMap<Integer,Attribute> attributeMap;
+  HashMap<Integer,List<Attribute>> attributeMap;
 
   public MFTEntry(byte[] data)
   {
@@ -104,7 +104,11 @@ public class MFTEntry
       }
     }
   }
-
+  public List<Long> getSubFiles()
+  {
+    IndexRoot_Attribute iRoot = (IndexRoot_Attribute)getAttribute(0x90).get(0);
+    return iRoot.getSubFiles();
+  }
   public void setFree()
   {
     free = true;
@@ -125,18 +129,32 @@ public class MFTEntry
 
   public void addAttribute(Attribute toAdd)
   {
-    attributeMap.put(toAdd.get_attributeType(),toAdd);
+    int type = toAdd.get_attributeType();
+    List<Attribute> set = attributeMap.get(type);
+    if(set == null){
+      set = new ArrayList<>();
+    }
+    set.add(toAdd);
+    attributeMap.put(type,set);
   }
-  public Attribute getAttribute(int type)
+  public List<Attribute> getAttribute(int type)
   {
     return attributeMap.get(type);
+  }
+  public String getName()
+  {
+    if(this.getAttribute(48)!=null){
+      return ((FileName_Attribute)this.getAttribute(48).get(0)).getName();
+    }else{
+      throw new RuntimeException("Entry does not have name");
+    }
   }
   public String toString()
   {
     StringBuilder sb = new StringBuilder();
     String name;
     if(this.getAttribute(48)!=null){
-      name = ((FileName_Attribute)this.getAttribute(48)).getName();
+      name = ((FileName_Attribute)this.getAttribute(48).get(0)).getName();
     }else{
       name = "FileName not found";
     }
