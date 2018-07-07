@@ -104,10 +104,15 @@ public class MFTEntry
       }
     }
   }
-  public List<Long> getSubFiles()
+  public List<IndexEntryList.IndexEntry> getSubFiles()
   {
+    ArrayList<IndexEntryList.IndexEntry> toReturn = new ArrayList<>();
     IndexRoot_Attribute iRoot = (IndexRoot_Attribute)getAttribute(0x90).get(0);
-    return iRoot.getSubFiles();
+    toReturn.addAll(iRoot.getSubFiles());
+    if(getAttribute(0xa0)!=null){
+      toReturn.addAll( ((IndexAllocation_Attribute)(getAttribute(0xa0).get(0))).getSubFiles() );
+    }
+    return toReturn;
   }
   public void setFree()
   {

@@ -1,6 +1,7 @@
 package westland.ntfs.uploader;
 
 import java.io.RandomAccessFile;
+import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.ByteBuffer;
@@ -15,9 +16,9 @@ public class VHDReader
 
 
 
-  private RandomAccessFile vhd;
+  private static RandomAccessFile vhd;
   private int LBA;
-  private int startOfNtfsPartition;
+  private long startOfNtfsPartition;
   private NTFS ntfs;
 
 
@@ -27,7 +28,16 @@ public class VHDReader
     parseMBR();
     initializeNTFS();
   }
-  public int getStartOfPartition()
+  public static MappedByteBuffer map(long start, long length)
+  {
+    try{
+      return vhd.getChannel().map(FileChannel.MapMode.READ_ONLY,start,length);
+    }catch(IOException e){
+      throw new RuntimeException(e);
+    }
+
+  }
+  public long getStartOfPartition()
   {
     return startOfNtfsPartition;
   }
@@ -38,7 +48,9 @@ public class VHDReader
     for(int index : PARTITION_INDEXES){
       if(((int) bytes[index+ID_INDEX]) == NTFS_ID){
 
-        startOfNtfsPartition = Helper.bytesToInt(bytes,index+LBA_INDEX,4)*512;
+        startOfNtfsPartition = Helper.bytesToLong(bytes,index+LBA_INDEX,4)*512l;
+        Helper.NTFS_START =  startOfNtfsPartition;
+        System.out.println(Helper.NTFS_START);
       }
     }
   }
@@ -50,13 +62,17 @@ public class VHDReader
     vhd.read(bytes);
     ntfs = new NTFS(bytes);
 
+
+    Helper.LCN_MULTIPLE = ntfs.BYTES_PER_SECTOR*ntfs.SECTORS_PER_CLUSTER;
+
     int offsetToEntry = 0;
     int i = 0;
 
     MFTEntry nextEntry;
-    while(i <12){
-      nextEntry = getEntry(startOfNtfsPartition+ntfs.relativeByteOfMFT(),i);
 
+    while(i <12){
+      System.out.println("index " + i);
+      nextEntry = getEntry(startOfNtfsPartition+ntfs.relativeByteOfMFT(),i);
       if(!nextEntry.isFree() && nextEntry.hasFileName()){
 
         ntfs.addEntry(nextEntry);
@@ -64,7 +80,9 @@ public class VHDReader
           if(nextEntry.getName().toLowerCase().equals(".")){
 
             System.out.println("found dot");
+            System.out.println();
             recurseThroughFileStructure(startOfNtfsPartition+ntfs.relativeByteOfMFT(), nextEntry);
+            System.out.println();
             System.out.println("done with dot");
 
           }
@@ -78,11 +96,29 @@ public class VHDReader
   }
   private void recurseThroughFileStructure(long offset, MFTEntry entry) throws Exception
   {
-
-    System.out.println(entry.getName());
+    if(entry.hasFileName()){
+      System.out.println(entry.getName());
+    }else{
+      System.out.println("entry has no name");
+    }
     if(entry.isDirectory()){
-      for(long l : entry.getSubFiles()){
-        recurseThroughFileStructure(offset,getEntry(offset,l));
+      for(IndexEntryList.IndexEntry l : entry.getSubFiles()){
+        if(l.fileName == null){
+          System.out.println("file name is null");
+          System.out.println(l.toString());
+        }else{
+          System.out.println("File Name "+ l.fileName.getName());
+
+        }
+        //System.out.println("MFT Reference " + l.mftFileReference);
+
+      }
+      System.out.println("showed all");
+      for(IndexEntryList.IndexEntry l : entry.getSubFiles()){
+        if(l.fileName!=null&&!l.fileName.getName().equals(".")){
+          recurseThroughFileStructure(offset,getEntry(offset,l.mftFileReference));
+
+        }
       }
     }
   }

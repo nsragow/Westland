@@ -10,16 +10,14 @@ public class IndexRoot_Attribute extends Attribute
   int sizeOfIndexAllocationEntry;
   int clustersPerIndexRecord;
 
-  int offsetToFirstIndex;
-  int offsetToEndOfUsedSpace;
-  int offsetToEndOfAllocatedSpace;
-  boolean indexAllocationNeeded;
+  NodeHeader nodeHeader;
+
 
   IndexEntryList indexEntryList;
   public IndexRoot_Attribute(byte[] header)
   {
     super(header);
-    
+
     if(!this.get_resident()){
       throw new AttributeException("this IndexRoot_Attribute is not resident, should not be possible");
     }
@@ -30,14 +28,15 @@ public class IndexRoot_Attribute extends Attribute
     collationRule = Helper.bytesToInt(header,offset+4,4);
     sizeOfIndexAllocationEntry = Helper.bytesToInt(header,offset+8,4);
     clustersPerIndexRecord = Helper.bytesToInt(header,offset+12,1);
-    offsetToFirstIndex = Helper.bytesToInt(header,offset+16,4);
-    offsetToEndOfUsedSpace = Helper.bytesToInt(header,offset+20,4);
-    offsetToEndOfAllocatedSpace = Helper.bytesToInt(header,offset+24,4);
-    indexAllocationNeeded = header[offset+28] == 1;
+    byte[] forNodeHeader = new byte[16];
+    for(int i = 0; i<forNodeHeader.length;i++){
+      forNodeHeader[i] = header[offset+16+i];
+    }
+    nodeHeader = new NodeHeader(forNodeHeader);
 
-    byte[] forIndexList = new byte[offsetToEndOfAllocatedSpace-offsetToFirstIndex];
+    byte[] forIndexList = new byte[nodeHeader.offsetToEndOfAllocatedSpace-nodeHeader.offsetToFirstIndex];
     for(int i = 0; i < forIndexList.length; i++){
-      forIndexList[i] = header[offset+16+offsetToFirstIndex+i];
+      forIndexList[i] = header[offset+16+nodeHeader.offsetToFirstIndex+i];
     }
     if(fileName && get_resident()){
 
@@ -48,7 +47,7 @@ public class IndexRoot_Attribute extends Attribute
 
 
   }
-  public List<Long> getSubFiles()
+  public List<IndexEntryList.IndexEntry> getSubFiles()
   {
     return indexEntryList.getSubFiles();
   }

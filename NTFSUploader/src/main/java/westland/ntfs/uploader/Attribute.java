@@ -11,6 +11,8 @@ public class Attribute
   int flags;
   int attributeID;
 
+
+
   //resident
   int lengthOfAttribute;
   int offsetToAttribute;
@@ -176,6 +178,7 @@ public class Attribute
     if(nameLength!=0){
       attributeName = Helper.bytesToString(header,offsetToName,2*nameLength,"UTF-16LE");
     }
+    
   }
 
   public static Attribute getAttribute(byte[] header)
