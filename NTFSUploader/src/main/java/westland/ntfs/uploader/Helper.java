@@ -36,7 +36,7 @@ public class Helper
 
 
   }
-  public static int bytesToInt(IndexConverter bytes, int offset, int length)
+  public static int bytesToInt(IndexConverter bytes, long offset, int length)
   {
 
     byte[] address = new byte[4];
@@ -76,7 +76,7 @@ public class Helper
 
 
   }
-  public static long bytesToLong(IndexConverter bytes, int offset, int length)
+  public static long bytesToLong(IndexConverter bytes, long offset, int length)
   {
 
     byte[] address = new byte[8];

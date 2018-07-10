@@ -10,6 +10,9 @@ public class Attribute
   int offsetToName;
   int flags;
   int attributeID;
+  boolean compressed;
+  boolean encrypted;
+
 
 
 
@@ -160,6 +163,11 @@ public class Attribute
     nameLength = Helper.bytesToInt(header,9,1);
     offsetToName = Helper.bytesToInt(header,10,2);
     flags = Helper.bytesToInt(header,12,2);
+    compressed = (1 & flags) == 1;
+    encrypted = (0x4000 & flags) == 0x4000;
+    if(compressed || encrypted){
+      System.out.println("found compressed or encrypted " + compressed + encrypted);
+    }
     attributeID = Helper.bytesToInt(header,14,2);
 
     if(resident){
@@ -178,7 +186,7 @@ public class Attribute
     if(nameLength!=0){
       attributeName = Helper.bytesToString(header,offsetToName,2*nameLength,"UTF-16LE");
     }
-    
+
   }
 
   public static Attribute getAttribute(byte[] header)

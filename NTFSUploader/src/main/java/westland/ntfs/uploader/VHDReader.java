@@ -71,20 +71,14 @@ public class VHDReader
     MFTEntry nextEntry;
 
     while(i <12){
-      System.out.println("index " + i);
+
       nextEntry = getEntry(startOfNtfsPartition+ntfs.relativeByteOfMFT(),i);
       if(!nextEntry.isFree() && nextEntry.hasFileName()){
 
         ntfs.addEntry(nextEntry);
         if(nextEntry.hasFileName()){
           if(nextEntry.getName().toLowerCase().equals(".")){
-
-            System.out.println("found dot");
-            System.out.println();
-            recurseThroughFileStructure(startOfNtfsPartition+ntfs.relativeByteOfMFT(), nextEntry);
-            System.out.println();
-            System.out.println("done with dot");
-
+            //recurseThroughFileStructure(startOfNtfsPartition+ntfs.relativeByteOfMFT(), nextEntry);
           }
         }
       }
@@ -96,24 +90,25 @@ public class VHDReader
   }
   private void recurseThroughFileStructure(long offset, MFTEntry entry) throws Exception
   {
-    if(entry.hasFileName()){
-      System.out.println(entry.getName());
-    }else{
-      System.out.println("entry has no name");
-    }
+
     if(entry.isDirectory()){
+      if(entry.hasFileName()){
+        System.out.println(entry.getName()+ " contains: ");
+      }else{
+        System.out.println("entry has no name");
+      }
       for(IndexEntryList.IndexEntry l : entry.getSubFiles()){
         if(l.fileName == null){
-          System.out.println("file name is null");
-          System.out.println(l.toString());
+          System.out.println(" file name is null ");
+          //System.out.print(l.toString()+ " ");
         }else{
-          System.out.println("File Name "+ l.fileName.getName());
+          System.out.println(" File Name "+ l.fileName.getName());
 
         }
         //System.out.println("MFT Reference " + l.mftFileReference);
 
       }
-      System.out.println("showed all");
+      System.out.println();
       for(IndexEntryList.IndexEntry l : entry.getSubFiles()){
         if(l.fileName!=null&&!l.fileName.getName().equals(".")){
           recurseThroughFileStructure(offset,getEntry(offset,l.mftFileReference));

@@ -8,6 +8,8 @@ public class IndexConverter
   long[] lengths;
   long[] subtractThisMuch;
   MappedByteBuffer[] buffers;
+  long length;
+  long next;
   public IndexConverter(long[] locAndLen)
   {
     addThisMuch = new long[locAndLen.length/2];
@@ -22,6 +24,12 @@ public class IndexConverter
       lengths[i] = locAndLen[i*2+1];
       ifLessThanThis[i] = currentIndex;
     }
+    length = ifLessThanThis[ifLessThanThis.length-1];
+    next = 0;
+  }
+  public long sizeInLong()
+  {
+    return length;
   }
   public long convert(long index)
   {
@@ -50,5 +58,17 @@ public class IndexConverter
       }
     }
 
+  }
+  public boolean has(long index)
+  {
+    return index<sizeInLong();
+  }
+  public boolean hasNext()
+  {
+    return next<sizeInLong();
+  }
+  public byte next()
+  {
+    return get(next++);
   }
 }

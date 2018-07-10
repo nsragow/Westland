@@ -103,6 +103,25 @@ public class MFTEntry
 
       }
     }
+    if(hasFileName() && getName().toLowerCase().equals("$secure")){
+      System.out.println("found secure");
+
+      List<Attribute> roots = this.getAttribute(0x80);
+
+      for(Attribute a : roots){
+        if(a.get_attributeName() != null && a.get_attributeName().toLowerCase().equals("$sds")){
+          System.out.println("I found the sds");
+          Data_Attribute d = (Data_Attribute) a;
+          IndexConverter ic = d.getFile();
+          int index = 0;
+          int wait = 0;
+
+          new SDSStream(ic);
+
+
+        }
+      }
+    }
   }
   public List<IndexEntryList.IndexEntry> getSubFiles()
   {
@@ -154,6 +173,40 @@ public class MFTEntry
       throw new RuntimeException("Entry does not have name");
     }
   }
+  public IndexConverter getFile()
+  {
+    List<Attribute> attributes = getAttribute(0x80);
+    for(Attribute a : attributes){
+      Data_Attribute d = (Data_Attribute) a;
+      if(d.get_attributeName() == null){
+        return d.getFile();
+      }
+    }
+    throw new RuntimeException("could not find data attribute without name");
+  }
+  public byte[] getBytes()
+  {
+    List<Attribute> attributes = getAttribute(0x80);
+    for(Attribute a : attributes){
+      Data_Attribute d = (Data_Attribute) a;
+      if(d.get_attributeName() == null){
+        return d.getBytes();
+      }
+    }
+    throw new RuntimeException("could not find data attribute without name");
+  }
+  public Data_Attribute getUnnamedData()
+  {
+    List<Attribute> attributes = getAttribute(0x80);
+    for(Attribute a : attributes){
+      Data_Attribute d = (Data_Attribute) a;
+      if(d.get_attributeName() == null){
+        return d;
+      }
+    }
+    throw new RuntimeException("could not find data attribute without name");
+  }
+
   public String toString()
   {
     StringBuilder sb = new StringBuilder();

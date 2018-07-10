@@ -11,13 +11,13 @@ public class IndexRoot_Attribute extends Attribute
   int clustersPerIndexRecord;
 
   NodeHeader nodeHeader;
-
+  byte[] storage;
 
   IndexEntryList indexEntryList;
   public IndexRoot_Attribute(byte[] header)
   {
     super(header);
-
+    storage = header;
     if(!this.get_resident()){
       throw new AttributeException("this IndexRoot_Attribute is not resident, should not be possible");
     }
