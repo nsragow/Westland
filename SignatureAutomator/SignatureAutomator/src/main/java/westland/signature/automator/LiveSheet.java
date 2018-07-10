@@ -145,6 +145,8 @@ public class LiveSheet
           orgList = SignatureBuilder.objectToArrayMapList(orginizations);
         }catch(IllegalArgumentException i){
           throw new LogException(i.toString()+"\n");
+        }catch(NullPointerException e){
+          orgList = new ArrayList<ArrayMap<String,Object>>();
         }
         orgList.get(0).put("title",title);
         user.setOrganizations(orgList);
@@ -157,6 +159,9 @@ public class LiveSheet
       phoneList = SignatureBuilder.objectToArrayMapList(phoneObj);
     }catch(IllegalArgumentException i){
       throw new LogException(i.toString()+"\n");
+
+    }catch(NullPointerException e){
+      phoneList = new ArrayList<ArrayMap<String,Object>>();
     }
     int indexOfMobile = -1;
     int indexOfFax = -1;

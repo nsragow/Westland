@@ -176,7 +176,7 @@ public class SignatureBuilder
   protected static List<ArrayMap<String,Object>> objectToArrayMapList(Object toCast) throws IllegalArgumentException
   {
     if(toCast == null){
-      throw new IllegalArgumentException("trying to cast null object");
+      throw new NullPointerException("trying to cast null object");
     }
     if(toCast instanceof List){
       List<Object> stepOne = (List<Object>)toCast;
