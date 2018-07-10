@@ -10,7 +10,7 @@ apply plugin: 'application'
 mainClassName = 'westland.signature.automator.Main'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
-version = '1.1.1'
+version = '1.1.2hotfix'
 
 repositories {
     mavenCentral()
