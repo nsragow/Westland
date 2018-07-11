@@ -2,8 +2,9 @@ package westland.ntfs.uploader;
 
 public class VolumeInformation_Attribute extends Attribute
 {
-  public VolumeInformation_Attribute(byte[] header)
+
+  public VolumeInformation_Attribute(IndexConverter header, long offset)
   {
-    super(header);
+    super(header, offset);
   }
 }

@@ -4,21 +4,22 @@ public class Data_Attribute extends Attribute
 {
   DataRuns dr;
   byte[] bytes;
-  public Data_Attribute(byte[] header)
+  
+  public Data_Attribute(IndexConverter header, long offset)
   {
-    super(header);
+    super(header, offset);
 
     if(!this.get_resident()){
-      byte[] forDataRun = new byte[header.length - this.get_offsetToDataRuns()];
+      byte[] forDataRun = new byte[(int)(header.sizeInLong() - this.get_offsetToDataRuns())-(int) offset];
       for(int i = 0; i < forDataRun.length; i++){
-        forDataRun[i] = header[i+this.get_offsetToDataRuns()];
+        forDataRun[i] = header.get(i+this.get_offsetToDataRuns()+offset);
       }
       dr = new DataRuns(forDataRun);
 
     }else{
-      byte[] forDataRun = new byte[header.length - this.get_offsetToAttribute()];
+      byte[] forDataRun = new byte[(int)(header.sizeInLong() - this.get_offsetToAttribute())-(int) offset];
       for(int i = 0; i < forDataRun.length; i++){
-        forDataRun[i] = header[i+this.get_offsetToAttribute()];
+        forDataRun[i] = header.get(i+this.get_offsetToAttribute()+offset);
       }
       bytes = forDataRun;
 

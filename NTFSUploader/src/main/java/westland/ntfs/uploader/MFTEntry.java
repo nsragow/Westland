@@ -49,55 +49,47 @@ public class MFTEntry
 
   HashMap<Integer,List<Attribute>> attributeMap;
 
-  public MFTEntry(byte[] data)
+
+  public MFTEntry(IndexConverter data, long offset)
   {
-    magicNumber = Helper.bytesToString(data,indexOfmagicNumber,lengthOfmagicNumber);
-    offsetToUpdateSequence = Helper.bytesToInt(data,indexOfoffsetToUpdateSequence,lengthOfoffsetToUpdateSequence);
-    numberOfEntriesInFixupArray = Helper.bytesToInt(data,indexOfnumberOfEntriesInFixupArray,lengthOfnumberOfEntriesInFixupArray);
-    LSN = Helper.bytesToLong(data,indexOfLSN,lengthOfLSN);
-    sequenceNumber = Helper.bytesToInt(data,indexOfsequenceNumber,lengthOfsequenceNumber);
-    hardLinkCount = Helper.bytesToInt(data,indexOfhardLinkCount,lengthOfhardLinkCount);
-    offsetToFirstAttribute = Helper.bytesToInt(data,indexOfoffsetToFirstAttribute,lengthOfoffsetToFirstAttribute);
-    flags = Helper.bytesToInt(data,indexOfflags,lengthOfflags);
-    usedSize = Helper.bytesToInt(data,indexOfusedSize,lengthOfusedSize);
-    allocatedSizeOfEntry = Helper.bytesToInt(data,indexOfallocatedSizeOfEntry,lengthOfallocatedSizeOfEntry);
-    fileReferenceToTheBaseOfFileRecord = Helper.bytesToLong(data,indexOffileReferenceToTheBaseOfFileRecord,lengthOffileReferenceToTheBaseOfFileRecord);
-    nextAttributeID = Helper.bytesToInt(data,indexOfnextAttributeID,lengthOfnextAttributeID);
-    numberOfRecord = Helper.bytesToInt(data,indexOfnumberOfRecord,lengthOfnumberOfRecord);
+    magicNumber = Helper.bytesToString(data,offset+indexOfmagicNumber,lengthOfmagicNumber);
+    offsetToUpdateSequence = Helper.bytesToInt(data,offset+indexOfoffsetToUpdateSequence,lengthOfoffsetToUpdateSequence);
+    numberOfEntriesInFixupArray = Helper.bytesToInt(data,offset+indexOfnumberOfEntriesInFixupArray,lengthOfnumberOfEntriesInFixupArray);
+    LSN = Helper.bytesToLong(data,offset+indexOfLSN,lengthOfLSN);
+    sequenceNumber = Helper.bytesToInt(data,offset+indexOfsequenceNumber,lengthOfsequenceNumber);
+    hardLinkCount = Helper.bytesToInt(data,offset+indexOfhardLinkCount,lengthOfhardLinkCount);
+    offsetToFirstAttribute = Helper.bytesToInt(data,offset+indexOfoffsetToFirstAttribute,lengthOfoffsetToFirstAttribute);
+    flags = Helper.bytesToInt(data,offset+indexOfflags,lengthOfflags);
+    usedSize = Helper.bytesToInt(data,offset+indexOfusedSize,lengthOfusedSize);
+    allocatedSizeOfEntry = Helper.bytesToInt(data,offset+indexOfallocatedSizeOfEntry,lengthOfallocatedSizeOfEntry);
+    fileReferenceToTheBaseOfFileRecord = Helper.bytesToLong(data,offset+indexOffileReferenceToTheBaseOfFileRecord,lengthOffileReferenceToTheBaseOfFileRecord);
+    nextAttributeID = Helper.bytesToInt(data,offset+indexOfnextAttributeID,lengthOfnextAttributeID);
+    numberOfRecord = Helper.bytesToInt(data,offset+indexOfnumberOfRecord,lengthOfnumberOfRecord);
     attributeMap = new HashMap<>();
     free = false;
-    parseAttributes(data);
+    parseAttributes(data, offset);
   }
 
-  private void parseAttributes(byte[] data)
+
+  private void parseAttributes(IndexConverter data, long offset)
   {
     int offsetToNext = 0;
     boolean parseAgain = true;
 
-    if(Helper.bytesToInt(data,this.offsetToFirstAttribute+offsetToNext,4) == 0xFFFFFFFF){
+    if(Helper.bytesToInt(data,this.offsetToFirstAttribute+offsetToNext+offset,4) == 0xFFFFFFFF){
       this.setFree();
     }else{
-      byte[] bytes;
       while(parseAgain){
-        bytes = new byte[64];
-        for(int i = 0; i < bytes.length; i++){
-          bytes[i] = data[this.offsetToFirstAttribute+offsetToNext+i];
-        }
-        bytes = new byte[Attribute.getAttributesLength(bytes)];
-
-        for(int i = 0; i < bytes.length; i++){
-          bytes[i] = data[this.offsetToFirstAttribute+offsetToNext+i];
-        }
         Attribute attribute = null;
         try{
-          attribute = Attribute.getAttribute(bytes);
+          attribute = Attribute.getAttribute(data,offset+offsetToNext+this.offsetToFirstAttribute);
           offsetToNext+=attribute.get_length();
           this.addAttribute(attribute);
         }catch(RuntimeException e){
           e.printStackTrace();
           parseAgain = false;
         }
-        if(Helper.bytesToInt(data,this.offsetToFirstAttribute+offsetToNext,4) == 0xFFFFFFFF){
+        if(Helper.bytesToInt(data,offset+this.offsetToFirstAttribute+offsetToNext,4) == 0xFFFFFFFF){
           parseAgain = false;
         }
 
@@ -149,6 +141,13 @@ public class MFTEntry
   public boolean hasSecurityIdentifier()
   {
     StandardInformation_Attribute si = (StandardInformation_Attribute)(getAttribute(16).get(0));
+    if(!si.hasSecurityID){
+      System.out.println("lloooked");
+      System.out.println(this.getName());
+      System.out.println(" old? "+si.oldStandard);
+      System.out.println(si.filePermissions);
+      SecurityDescriptor_Attribute sd = (SecurityDescriptor_Attribute)(getAttribute(0x50).get(0));
+    }
     return si.hasSecurityID;
   }
   public boolean isFree()

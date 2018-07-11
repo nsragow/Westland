@@ -92,15 +92,15 @@ public class VHDReader
   private void recurseThroughFileStructure(long offset, MFTEntry entry) throws Exception
   {
     if(entry.hasFileName()){
-      System.out.println(entry.getName()+ " contains: ");
+      //System.out.println(entry.getName()+ " contains: ");
     }else{
-      System.out.println("entry has no name");
+      //System.out.println("entry has no name");
     }
     if(entry.hasSecurityIdentifier()){
-      System.out.println("getSecurityIdentifier is " + entry.getSecurityIdentifier());
-      System.out.println(SecurityInfo.getSecurityDescriptorforSIdentifier(entry.getSecurityIdentifier()).toString());
+      //System.out.println("getSecurityIdentifier is " + entry.getSecurityIdentifier());
+      //System.out.println(SecurityInfo.getSecurityDescriptorforSIdentifier(entry.getSecurityIdentifier()).toString());
     }else{
-      System.out.println("no security id");
+      //System.out.println("no security id");
     }
     if(entry.isDirectory()){
       for(IndexEntryList.IndexEntry l : entry.getSubFiles()){
@@ -125,11 +125,11 @@ public class VHDReader
   }
   private MFTEntry getEntry(long offset, long index) throws Exception
   {
-    byte[] bytes = new byte[1024];
-    vhd.seek(offset+index*1024);
 
-    vhd.read(bytes);
-    return new MFTEntry(bytes);
+
+    IndexConverter ic = new IndexConverter(new long[]{(offset+index*1024),1024});
+    ic.map();
+    return new MFTEntry(ic,0);
   }
 }
 //todo, are we dealing with signed or insigned integer values

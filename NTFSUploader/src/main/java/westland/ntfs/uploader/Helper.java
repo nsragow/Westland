@@ -110,7 +110,7 @@ public class Helper
 
 
   }
-  public static String bytesToString(IndexConverter bytes, int offset, int length)
+  public static String bytesToString(IndexConverter bytes, long offset, int length)
   {
 
     byte[] address = new byte[length];
@@ -143,7 +143,7 @@ public class Helper
 
 
   }
-  public static String bytesToString(IndexConverter bytes, int offset, int length, String charset)
+  public static String bytesToString(IndexConverter bytes, long offset, int length, String charset)
   {
 
     byte[] address = new byte[length];
@@ -171,7 +171,7 @@ public class Helper
     }
     return sb.toString();
   }
-  public static String bytesToHexString(IndexConverter a, int offset, int length)
+  public static String bytesToHexString(IndexConverter a, long offset, int length)
   {
     StringBuilder sb = new StringBuilder();
     for(int i = 0; i < length; i++){

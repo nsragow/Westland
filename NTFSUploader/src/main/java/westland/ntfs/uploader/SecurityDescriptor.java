@@ -13,11 +13,10 @@ public class SecurityDescriptor
     public SID(IndexConverter ic, long offset, int size)
     {
       if(size<12){
-        System.out.println("--------------------------------------------size is "+size);
+        //System.out.println("--------------------------------------------size is "+size);
       }
       revisionLevel = Helper.bytesToInt(ic,offset+0,1);
       iDontKnow = Helper.bytesToInt(ic,offset+1,1);
-      //System.out.println("iDontKnow "+iDontKnow);
       byte[] littleEndian = new byte[6];
       for(int i = 0; i < littleEndian.length; i++){
         littleEndian[i] = ic.get(offset+2+(littleEndian.length-1-i));
@@ -27,7 +26,6 @@ public class SecurityDescriptor
       for(int i = 0; i < (size-8)/4; i++){
         subAthorities.add(Helper.bytesToLong(ic,offset+8+(4*i),4));
       }
-      //System.out.println(this.toString());
     }
     public String toString()
     {
@@ -83,6 +81,10 @@ public class SecurityDescriptor
     sb.append("-------SecurityDescriptor-------\n");
     sb.append("User SID: " + userSID.toString());
     sb.append("\nGroup SID: " + groupSID.toString());
+    if(sacl!=null){
+      sb.append("\n-------SACL-------");
+      sb.append(sacl.toString());
+    }
     sb.append("\n-------DACL-------");
     sb.append(dacl.toString());
 
@@ -143,8 +145,10 @@ public class SecurityDescriptor
           sb.append("Allow Access: ");
         }else if(type == 1){
           sb.append("Deny Access: ");
-        }else{
+        }else if(type == 2){
           sb.append("System Audit: ");
+        }else{
+          throw new RuntimeException("shouldnt be a type of " + type);
         }
         sb.append(sid.toString());
         return sb.toString();

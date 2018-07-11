@@ -6,15 +6,14 @@ public class IndexAllocation_Attribute extends Attribute
 {
   DataRuns dRuns;
   INDX indx;
-  byte[] storage;
   INDXSDH indxsdh;
-  public IndexAllocation_Attribute(byte[] header)
+  
+  public IndexAllocation_Attribute(IndexConverter header,long offset)
   {
-    super(header);
-    storage = header;
-    byte[] forDataRun = new byte[header.length-get_offsetToDataRuns()];
+    super(header,offset);
+    byte[] forDataRun = new byte[(int)(header.sizeInLong()-get_offsetToDataRuns()-offset)];
     for(int i = 0; i < forDataRun.length; i++){
-      forDataRun[i] = header[i+get_offsetToDataRuns()];
+      forDataRun[i] = header.get(i+get_offsetToDataRuns()+offset);
     }
     dRuns = new DataRuns(forDataRun);
     IndexConverter indices = dRuns.getIndexConverter();
@@ -25,10 +24,6 @@ public class IndexAllocation_Attribute extends Attribute
     }else if(this.get_attributeName().toLowerCase().equals("$sdh")){
       indxsdh = new INDXSDH(indices);
     }
-
-
-
-
   }
   public List<IndexEntryList.IndexEntry> getSubFiles()
   {

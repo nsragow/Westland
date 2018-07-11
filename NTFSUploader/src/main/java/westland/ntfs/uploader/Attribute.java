@@ -154,77 +154,83 @@ public class Attribute
   {
     return Helper.bytesToInt(header,4,4);
   }
-  //should be byte[] of length 64
-  protected Attribute(byte[] header)
+  protected static int getAttributesLength(IndexConverter header, long offset)
   {
-    attributeType = Helper.bytesToInt(header,0,4);
-    length = Helper.bytesToInt(header,4,4);
-    resident = (header[8] == 0);
-    nameLength = Helper.bytesToInt(header,9,1);
-    offsetToName = Helper.bytesToInt(header,10,2);
-    flags = Helper.bytesToInt(header,12,2);
+    return Helper.bytesToInt(header,4+offset,4);
+  }
+  //should be byte[] of length 64
+  
+  protected Attribute(IndexConverter header, long offset)
+  {
+    attributeType = Helper.bytesToInt(header,0+offset,4);
+    length = Helper.bytesToInt(header,4+offset,4);
+    resident = (header.get(8+offset) == 0);
+    nameLength = Helper.bytesToInt(header,9+offset,1);
+    offsetToName = Helper.bytesToInt(header,10+offset,2);
+    flags = Helper.bytesToInt(header,12+offset,2);
     compressed = (1 & flags) == 1;
     encrypted = (0x4000 & flags) == 0x4000;
     if(compressed || encrypted){
       System.out.println("found compressed or encrypted " + compressed + encrypted);
     }
-    attributeID = Helper.bytesToInt(header,14,2);
+    attributeID = Helper.bytesToInt(header,14+offset,2);
 
     if(resident){
-      lengthOfAttribute = Helper.bytesToInt(header,16,4);
-      offsetToAttribute = Helper.bytesToInt(header,20,2);
-      indexedFlag = Helper.bytesToInt(header,22,1);
+      lengthOfAttribute = Helper.bytesToInt(header,16+offset,4);
+      offsetToAttribute = Helper.bytesToInt(header,20+offset,2);
+      indexedFlag = Helper.bytesToInt(header,22+offset,1);
     }else{
-      startingVCN = Helper.bytesToLong(header,16,8);
-      lastVCN = Helper.bytesToLong(header,24,8);
-      offsetToDataRuns = Helper.bytesToInt(header,32,2);
-      compressionUnitSize = Helper.bytesToInt(header,34,2);
-      allocatedSizeOfAttribute = Helper.bytesToLong(header,40,8);
-      realSizeOfAttribute = Helper.bytesToLong(header,48,8);
-      initializedDataSizeOfStream = Helper.bytesToLong(header,56,8);
+      startingVCN = Helper.bytesToLong(header,16+offset,8);
+      lastVCN = Helper.bytesToLong(header,24+offset,8);
+      offsetToDataRuns = Helper.bytesToInt(header,32+offset,2);
+      compressionUnitSize = Helper.bytesToInt(header,34+offset,2);
+      allocatedSizeOfAttribute = Helper.bytesToLong(header,40+offset,8);
+      realSizeOfAttribute = Helper.bytesToLong(header,48+offset,8);
+      initializedDataSizeOfStream = Helper.bytesToLong(header,56+offset,8);
     }
     if(nameLength!=0){
-      attributeName = Helper.bytesToString(header,offsetToName,2*nameLength,"UTF-16LE");
+      attributeName = Helper.bytesToString(header,offsetToName+offset,2*nameLength,"UTF-16LE");
     }
 
   }
 
-  public static Attribute getAttribute(byte[] header)
+
+  public static Attribute getAttribute(IndexConverter header, long offset)
   {
-    int type = Helper.bytesToInt(header,0,4);
+    int type = Helper.bytesToInt(header,offset,4);
     switch(type){
       case 16:
-      return new StandardInformation_Attribute(header);
+      return new StandardInformation_Attribute(header, offset);
       case 32:
-      return new AttributeList_Attribute(header);
+      return new AttributeList_Attribute(header, offset);
       case 48:
-      return new FileName_Attribute(header);
+      return new FileName_Attribute(header, offset);
       case 64:
-      return new ObjectID_Attribute(header);
+      return new ObjectID_Attribute(header, offset);
       case 80:
-      return new SecurityDescriptor_Attribute(header);
+      return new SecurityDescriptor_Attribute(header, offset);
       case 96:
-      return new VolumeName_Attribute(header);
+      return new VolumeName_Attribute(header, offset);
       case 112:
-      return new VolumeInformation_Attribute(header);
+      return new VolumeInformation_Attribute(header, offset);
       case 128:
-      return new Data_Attribute(header);
+      return new Data_Attribute(header, offset);
       case 144:
-      return new IndexRoot_Attribute(header);
+      return new IndexRoot_Attribute(header, offset);
       case 160:
-      return new IndexAllocation_Attribute(header);
+      return new IndexAllocation_Attribute(header, offset);
       case 176:
-      return new BitMap_Attribute(header);
+      return new BitMap_Attribute(header, offset);
       case 192:
-      return new ReparsePoint_Attribute(header);
+      return new ReparsePoint_Attribute(header, offset);
       case 208:
-      return new EAInformation_Attribute(header);
+      return new EAInformation_Attribute(header, offset);
       case 224:
-      return new EA_Attribute(header);
+      return new EA_Attribute(header, offset);
       case 240:
-      return new PropertySet_Attribute(header);
+      return new PropertySet_Attribute(header, offset);
       case 256:
-      return new LoggedUtilityStream_Attribute(header);
+      return new LoggedUtilityStream_Attribute(header, offset);
       default:
       throw new RuntimeException("Unrecognized Attribute type " + type);
       //return new Attribute(header);

@@ -14,25 +14,26 @@ public class FileName_Attribute extends Attribute
   private int namespace;
   private String name;
   private String nameAsHex;
-  public FileName_Attribute(byte[] header)
+  
+  public FileName_Attribute(IndexConverter header, long offset2)
   {
-    super(header);
+    super(header, offset2);
     if(!this.get_resident()){
       throw new AttributeException("this FileName_Attribute is not resident, should not be possible");
     }
     int offset = this.get_offsetToAttribute();
-    referenceToParentDirectory = Helper.bytesToLong(header,offset+0,8);
-    cTime = Helper.bytesToLong(header,offset+8,8);
-    aTime = Helper.bytesToLong(header,offset+16,8);
-    mTime = Helper.bytesToLong(header,offset+24,8);
-    rTime = Helper.bytesToLong(header,offset+32,8);
-    allocatedSize = Helper.bytesToLong(header,offset+40,8);
-    realSize = Helper.bytesToLong(header,offset+48,8);
-    flags = Helper.bytesToInt(header,offset+56,4);
-    filenameLength = Helper.bytesToInt(header,offset+64,1);
-    namespace = Helper.bytesToInt(header,offset+65,1);
-    name = Helper.bytesToString(header,offset+66,(2*filenameLength),"UTF-16LE");
-    nameAsHex = Helper.bytesToHexString(header,offset+66,(2*filenameLength));
+    referenceToParentDirectory = Helper.bytesToLong(header,offset2+offset+0,8);
+    cTime = Helper.bytesToLong(header,offset2+offset+8,8);
+    aTime = Helper.bytesToLong(header,offset2+offset+16,8);
+    mTime = Helper.bytesToLong(header,offset2+offset+24,8);
+    rTime = Helper.bytesToLong(header,offset2+offset+32,8);
+    allocatedSize = Helper.bytesToLong(header,offset2+offset+40,8);
+    realSize = Helper.bytesToLong(header,offset2+offset+48,8);
+    flags = Helper.bytesToInt(header,offset2+offset+56,4);
+    filenameLength = Helper.bytesToInt(header,offset2+offset+64,1);
+    namespace = Helper.bytesToInt(header,offset2+offset+65,1);
+    name = Helper.bytesToString(header,offset2+offset+66,(2*filenameLength),"UTF-16LE");
+    nameAsHex = Helper.bytesToHexString(header,offset2+offset+66,(2*filenameLength));
 
   }
   public String getName()
