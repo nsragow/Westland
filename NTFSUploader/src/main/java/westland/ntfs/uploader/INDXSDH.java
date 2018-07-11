@@ -15,12 +15,13 @@ public class INDXSDH
   boolean hasChildren;
   List<Entry> entries;
 
+  Map<Integer,Long> identifierToOffset;
 
   public INDXSDH(IndexConverter indx)
   {
 
     indx.map();
-
+    identifierToOffset = new HashMap<>();
     magicNumber = Helper.bytesToString(indx,0,4);
     if(!magicNumber.toLowerCase().equals("indx")){
       throw new RuntimeException("indx did not contain magic number indx");
@@ -51,6 +52,8 @@ public class INDXSDH
       entry.offsetToSD = Helper.bytesToLong(indx,index+0x20,8);
       entry.sizeOfSD = Helper.bytesToInt(indx,index+0x28,4);
 
+
+      identifierToOffset.put(entry.SIDKey,entry.offsetToSD);
       if(entry.offsetToData!=0x18){
         System.out.println("value is wrong");
       }
@@ -68,6 +71,7 @@ public class INDXSDH
       entries.add(entry);
 
     }
+    SecurityInfo.identifierToOffset = this.identifierToOffset;
 
 
   }

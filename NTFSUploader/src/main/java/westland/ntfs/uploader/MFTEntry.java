@@ -137,6 +137,20 @@ public class MFTEntry
   {
     free = true;
   }
+  public int getSecurityIdentifier()
+  {
+    StandardInformation_Attribute si = (StandardInformation_Attribute)(getAttribute(16).get(0));
+    if(si.hasSecurityID){
+      return si.securityID;
+    }else{
+      throw new RuntimeException("does not have security Identifier");
+    }
+  }
+  public boolean hasSecurityIdentifier()
+  {
+    StandardInformation_Attribute si = (StandardInformation_Attribute)(getAttribute(16).get(0));
+    return si.hasSecurityID;
+  }
   public boolean isFree()
   {
     return free;

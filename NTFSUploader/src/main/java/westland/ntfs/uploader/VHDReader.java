@@ -69,7 +69,7 @@ public class VHDReader
     int i = 0;
 
     MFTEntry nextEntry;
-
+    MFTEntry root = null;
     while(i <12){
 
       nextEntry = getEntry(startOfNtfsPartition+ntfs.relativeByteOfMFT(),i);
@@ -78,31 +78,37 @@ public class VHDReader
         ntfs.addEntry(nextEntry);
         if(nextEntry.hasFileName()){
           if(nextEntry.getName().toLowerCase().equals(".")){
-            //recurseThroughFileStructure(startOfNtfsPartition+ntfs.relativeByteOfMFT(), nextEntry);
+            root = nextEntry;
           }
         }
       }
       i++;
     }
+    recurseThroughFileStructure(startOfNtfsPartition+ntfs.relativeByteOfMFT(), root);
 
 
 
   }
   private void recurseThroughFileStructure(long offset, MFTEntry entry) throws Exception
   {
-
+    if(entry.hasFileName()){
+      System.out.println(entry.getName()+ " contains: ");
+    }else{
+      System.out.println("entry has no name");
+    }
+    if(entry.hasSecurityIdentifier()){
+      System.out.println("getSecurityIdentifier is " + entry.getSecurityIdentifier());
+      System.out.println(SecurityInfo.getSecurityDescriptorforSIdentifier(entry.getSecurityIdentifier()).toString());
+    }else{
+      System.out.println("no security id");
+    }
     if(entry.isDirectory()){
-      if(entry.hasFileName()){
-        System.out.println(entry.getName()+ " contains: ");
-      }else{
-        System.out.println("entry has no name");
-      }
       for(IndexEntryList.IndexEntry l : entry.getSubFiles()){
         if(l.fileName == null){
-          System.out.println(" file name is null ");
+          //System.out.println(" file name is null ");
           //System.out.print(l.toString()+ " ");
         }else{
-          System.out.println(" File Name "+ l.fileName.getName());
+          //System.out.println(" File Name "+ l.fileName.getName());
 
         }
         //System.out.println("MFT Reference " + l.mftFileReference);
