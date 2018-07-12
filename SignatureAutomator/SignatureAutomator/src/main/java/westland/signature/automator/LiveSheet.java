@@ -136,21 +136,18 @@ public class LiveSheet
         title = "";
       }
       Object orginizations = user.getOrganizations();
-      if(orginizations == null){
-        throw new LogException(email + " did not have orginization for title\n");
-      }else{
-
-        List<ArrayMap<String,Object>> orgList = null;
-        try{
-          orgList = SignatureBuilder.objectToArrayMapList(orginizations);
-        }catch(IllegalArgumentException i){
-          throw new LogException(i.toString()+"\n");
-        }catch(NullPointerException e){
-          orgList = new ArrayList<ArrayMap<String,Object>>();
-        }
-        orgList.get(0).put("title",title);
-        user.setOrganizations(orgList);
+      List<ArrayMap<String,Object>> orgList = null;
+      try{
+        orgList = SignatureBuilder.objectToArrayMapList(orginizations);
+      }catch(IllegalArgumentException i){
+        throw new LogException(i.toString()+"\n");
+      }catch(NullPointerException e){
+        orgList = new ArrayList<ArrayMap<String,Object>>();
+        orgList.add(new ArrayMap<String,Object>());
       }
+      orgList.get(0).put("title",title);
+      user.setOrganizations(orgList);
+
     }
 //    //set fax and cell
     Object phoneObj = user.getPhones();

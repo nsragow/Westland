@@ -102,7 +102,7 @@ public class OrgMovementDetector
           newOrgName = Helper.orgPathToName(u.getOrgUnitPath());
           if(oldOrgTable.containsKey(u.getPrimaryEmail())){
             try{
-              oldOrgName =Helper.orgPathToName(oldOrgTable.get(u.getPrimaryEmail(),"org"));
+              oldOrgName = Helper.orgPathToName(oldOrgTable.get(u.getPrimaryEmail(),"org"));
             }catch(IllegalArgumentException e){
               oldOrgName = "{could not find in old org table: "+ u.getPrimaryEmail() + "}";
             }
@@ -118,14 +118,28 @@ public class OrgMovementDetector
 
 
               }else if(oldOrg == null){
-                logs.append( "could not find data from G-Suite on old orgunit "+oldOrgName+" when checking for orgunit change, will not update local info");
-                logs.append("\r\n");
+                if(Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
+                  if(newOrg == null){
+                    logs.append( "could not find data on from G-Suite new orgunit "+newOrgName+" when checking for orgunit change, will not update local info");
+                    logs.append("\r\n");
+                  }
+                  else{
+                    toSend.append(sb.get("name")+ " "+u.getPrimaryEmail());
+                    toSend.append("Came from blacklisted orgUnit "+oldOrgName+"\n");
+                    toSend.append("Fax on new org: "+newOrg.get("fax"));
+                  }
+                }
+                else{
+                  logs.append( "could not find data from G-Suite on old orgunit "+oldOrgName+" when checking for orgunit change, will not update local info");
+                  logs.append("\r\n");
+                }
 
               }else if(newOrg == null){
                 logs.append( "could not find data on from G-Suite new orgunit "+newOrgName+" when checking for orgunit change, will not update local info");
                 logs.append("\r\n");
 
               }else{
+                toSend.append(sb.get("name")+ " "+u.getPrimaryEmail());
                 toSend.append("Fax on account: "+sb.get("work_fax")+"\n");
                 toSend.append("Fax on old org: "+oldOrg.get("fax")+"\n");
                 toSend.append("Fax on new org: "+newOrg.get("fax"));
@@ -155,6 +169,7 @@ public class OrgMovementDetector
               logs.append("\r\n");
 
             }else{
+              toSend.append(sb.get("name")+ " "+u.getPrimaryEmail());
               toSend.append("Fax on account: "+sb.get("work_fax")+"\n");
 
               toSend.append("Fax on new org: "+newOrg.get("fax"));
