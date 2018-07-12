@@ -118,7 +118,8 @@ public class OrgMovementDetector
 
 
               }else if(oldOrg == null){
-                if(Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
+
+                if(Strings.BlackList.contains(oldOrgName)){
                   if(newOrg == null){
                     logs.append( "could not find data on from G-Suite new orgunit "+newOrgName+" when checking for orgunit change, will not update local info");
                     logs.append("\r\n");
