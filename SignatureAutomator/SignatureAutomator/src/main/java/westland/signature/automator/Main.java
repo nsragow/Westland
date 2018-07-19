@@ -235,7 +235,83 @@ public class Main
       exit(1);
     }
   }
+  private static void runTest() throws Exception
+  {
 
+    Directory service = null;
+    Gmail gmail = null;
+    GroupWrapper gw = new GroupWrapper(serviceManager);
+    System.out.println("gw.hasGroup(tester@westlandreg.com) "+gw.hasGroup("tester@westlandreg.com"));
+    System.out.println("adding...");
+    gw.addEmailToGroup("test@westlandreg.com","tester@westlandreg.com");
+
+  }
+  private static void printUserData() throws Exception
+  {
+
+    //todo not good at checking for exceptions
+
+    //Directory service = null;
+    //service = serviceManager.getDirectory();
+
+
+
+
+
+    Directory service = null;
+    Gmail gmail = null;
+    try{
+      service = serviceManager.getDirectory();
+
+
+
+    }
+    catch(Exception e){
+      throw new RuntimeException(e);
+      //emailOrErr(e);
+      //exit(1);
+    }
+    DataCollector dataCollector = null;
+    try{
+
+      dataCollector = new DataCollector(service,new StringBuilder());
+    }catch(FatalException e){
+      throw new RuntimeException(e);
+      //emailOrErr(e);
+      //exit(1);
+    }
+
+    Table table = new Table(new String[]{"First","Last","Email","Org","Title","Ext"});
+    for(User u : dataCollector.getUsers()){
+      if(!u.getSuspended()){
+
+        String first = u.getName().getGivenName();
+        String last = u.getName().getFamilyName();
+        String email = u.getPrimaryEmail();
+        String org = Helper.orgPathToName(u.getOrgUnitPath());
+        String title;
+        try{
+          title = UserFunctions.getTitle(u);
+        }catch(Exception e){
+          System.out.println(email);
+          title = "";
+        }
+        String ext = UserFunctions.getExt(u);
+
+
+
+        table.addRow(new String[]{first,last,email,org,title,ext});
+      }
+
+    }
+    Table.writeTableToCSV(table,"./userData.csv");
+
+
+
+
+
+
+  }
   private static void orgCheck()
   {
 
@@ -304,18 +380,33 @@ public class Main
           reports.err(Helper.exceptionToString(e));
         }
         break;
+      case "-shortcheck":
+        liveSheetRun();
+        orgCheck();
+        break;
       case "-orgcheck":
         orgCheck();
         break;
       case "-livesheet":
         liveSheetRun();
         break;
-      case "-shortcheck":
-        liveSheetRun();
-        orgCheck();
-        break;
       case "-server":
         runServer();
+        break;
+      case "-printuserdata":
+        try{
+          printUserData();
+        }catch(Exception e){
+          e.printStackTrace();
+        }
+        break;
+      case "-test":
+        try{
+          runTest();
+        }catch(Exception e){
+
+          throw new RuntimeException(e);
+        }
         break;
       default:
         reports.err("Improper commandline argument: " + option+ "\n");

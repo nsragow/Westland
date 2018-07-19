@@ -25,4 +25,8 @@ public class Helper
     e.printStackTrace(new PrintWriter(errors));
     return errors.toString();
   }
+  public static String orgUnitToStaffGroupEmail(String orgUnit)
+  {
+    return orgUnit.replace(" ","") + "staff@westlandreg.com";
+  }
 }

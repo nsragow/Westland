@@ -27,14 +27,14 @@ task fatJar(type: Jar) {
     with jar
 }
 run {
-    args = ["C:/Users/Westland/NoahsProjects/Westland/SignatureAutomator/SignatureAutomator", "-livesheet"]
+    args = ["C:/Users/Westland/NoahsProjects/Westland/SignatureAutomator/SignatureAutomator", "-orgcheck"]
 }
 
 
 dependencies {
     compile 'com.google.api-client:google-api-client:1.23.0'
     compile 'com.google.oauth-client:google-oauth-client-jetty:1.23.0'
-    compile 'com.google.apis:google-api-services-admin-directory:directory_v1-rev53-1.20.0'
+    compile 'com.google.apis:google-api-services-admin-directory:directory_v1-rev101-1.23.0'
     compile 'com.google.apis:google-api-services-gmail:v1-rev83-1.23.0'
     compile 'org.apache.commons:commons-csv:1.5'
     compile group: 'javax.mail', name: 'mail', version: '1.5.0-b01'

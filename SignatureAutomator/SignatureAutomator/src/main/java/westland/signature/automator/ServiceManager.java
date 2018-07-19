@@ -4,6 +4,8 @@ import com.google.api.services.admin.directory.model.User;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.services.gmail.model.Draft;
+import com.google.api.services.admin.directory.model.Group;
+import com.google.api.services.admin.directory.model.Member;
 import com.google.api.services.gmail.model.Message;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
@@ -43,8 +45,8 @@ public class ServiceManager
 
     scopes= new ArrayList<>();
     scopes.add(DirectoryScopes.ADMIN_DIRECTORY_USER);
-    scopes.add(DirectoryScopes.ADMIN_DIRECTORY_GROUP_READONLY);
-    scopes.add(DirectoryScopes.ADMIN_DIRECTORY_GROUP_MEMBER_READONLY);
+    scopes.add(DirectoryScopes.ADMIN_DIRECTORY_GROUP);
+    scopes.add(DirectoryScopes.ADMIN_DIRECTORY_GROUP_MEMBER);
     scopes.add(DirectoryScopes.ADMIN_DIRECTORY_ORGUNIT);
     scopes.add(DriveScopes.DRIVE);
 
@@ -67,6 +69,26 @@ public class ServiceManager
   private JacksonFactory getJacksonFactory()
   {
     return new JacksonFactory();
+  }
+  public Group getGroup(String key) throws IOException
+  {
+    return getDirectory().groups().get(key).execute();
+  }
+  public void makeNewGroup(Group group) throws IOException
+  {
+    getDirectory().groups().insert(group).execute();
+  }
+  public void addMemberToGroup(Member member, String group) throws IOException
+  {
+    getDirectory().members().insert(group,member).execute();
+  }
+  public void removeMemberFromGroup(String member, String group) throws IOException
+  {
+    getDirectory().members().delete(group,member).execute();
+  }
+  public boolean hasMemberInGroup(String member, String group) throws IOException
+  {
+    return getDirectory().members().hasMember(group,member).execute().getIsMember();
   }
   public void updateSheet(String fileID, String name, java.io.File file, String accountName) throws IOException
   {
@@ -125,6 +147,10 @@ public class ServiceManager
   public void sendEmail(String to, String from, String subject, String bodyText) throws Exception
   {
     sendEmail(to,from,subject,bodyText,null);
+  }
+  public void sendErrorReport(String bodyText) throws Exception
+  {
+    sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,bodyText,null);
   }
   public void sendEmail(String to, String from, String subject, String bodyText, String[] ccs) throws Exception
   {
