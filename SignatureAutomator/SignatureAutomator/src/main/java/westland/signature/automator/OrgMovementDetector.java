@@ -110,7 +110,6 @@ public class OrgMovementDetector
             userFoundWorkflow(newOrgName,u,oldOrgTable);
 
           }else{// we havent seen this user before
-            System.out.println("wdsddsaaaaa");
 
             newUserWorkflow(u,newOrgName,oldOrgTable);
           }
@@ -216,20 +215,27 @@ public class OrgMovementDetector
           logs.append(Helper.exceptionToString(e));
           logs.append("\r\n");
         }
+        String title = oldOrgTable.get(u.getPrimaryEmail(),"title");
+        removeTitleGroup(u,title,oldOrgName);
+        try{
+          title = UserFunctions.getTitle(u);
+          addTitleGroup(u,title);
+        }catch(NullPointerException e){
+          addTitleGroup(u,"");
+        }catch(IllegalArgumentException e){
+          logs.append(Helper.exceptionToString(e));
+        }catch(Exception e){
+          logs.append(Helper.exceptionToString(e));
+        }
+
+        //add to title and org groups
 
         //group management
-        String oldGroup = Helper.orgUnitToStaffGroupEmail(oldOrgName);
-        if(gW.hasGroup(oldGroup)){
-
-          gW.removeEmailFromGroup(u.getPrimaryEmail(),oldGroup);
-        }
-        String newGroup = Helper.orgUnitToStaffGroupEmail(newOrgName);
-        if(!gW.hasGroup(newGroup)){
-          gW.makeNewStaffGroup(newOrgName);
-        }
-        gW.addEmailToGroup(u.getPrimaryEmail(),newGroup);
         oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),Helper.orgPathToName(u.getOrgUnitPath()),oldOrgTable.get(u.getPrimaryEmail(),"title")});
       }
+    }else{
+      //only need to check changes to title
+      titleGroupChanger(u, oldOrgTable);
     }
 
   }
@@ -255,18 +261,18 @@ public class OrgMovementDetector
       toSend.append("Fax on new org: "+newOrg.get("fax"));
       //todo make sure after testing that it actually does send to the correct ppl
 
-      String title = oldOrgTable.get(u.getPrimaryEmail(),"title");
+      String title = "";
       try{
         title = UserFunctions.getTitle(u);
       }catch(Exception e){
         logs.append(Helper.exceptionToString(e));
       }
       String newGroup = Helper.orgUnitToStaffGroupEmail(newOrgName);
-      if(!gW.hasGroup(newGroup)){
-        gW.makeNewStaffGroup(newOrgName);
-      }
-      gW.addEmailToGroup(u.getPrimaryEmail(),newGroup);
+
+      //add to title and org groups
+      if(title == null) title = "";
       oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),Helper.orgPathToName(u.getOrgUnitPath()),title});
+      addTitleGroup(u,title);
       try{
         serviceManager.sendEmail(Strings.jesse_email,Strings.jesse_email,"ORGCHANGE for new user: "+ u.getPrimaryEmail() + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
       }catch(Exception e){
@@ -275,16 +281,50 @@ public class OrgMovementDetector
       }
     }
   }
-  private void titleChangeCheck(User u, Table oldOrgName)
+  private void addTitleGroup(User u, String title)
   {
-    String newTitle = UserFunctions.getTitle(u);
-    String oldTitle = oldOrgName.get(u.getPrimaryEmail(),"title");
-    //should check if they are the same 
-    if(oldTitle != null && !oldTitle.isEmpty()){
-      //remove from old title groups
-    }
-    if(newTitle == null || newTitle.isEmpty()){
-
+    try{
+      if(title.toLowerCase().contains("manager")){
+        gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToManagerGroupEmail(Helper.orgPathToName(u.getOrgUnitPath())),GroupWrapper.MANAGEMENT);
+      }
+      gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToStaffGroupEmail(Helper.orgPathToName(u.getOrgUnitPath())),GroupWrapper.STAFF);
+    }catch(IOException e){
+      logs.append(Helper.exceptionToString(e));
     }
   }
+  private void removeTitleGroup(User u, String title, String oldOrg)
+  {
+    try{
+      if(title.toLowerCase().contains("manager")){
+        gW.removeEmailFromGroup(u.getPrimaryEmail(),Helper.orgUnitToManagerGroupEmail(oldOrg));
+      }
+      gW.removeEmailFromGroup(u.getPrimaryEmail(),Helper.orgUnitToStaffGroupEmail(oldOrg));
+    }catch(IOException e){
+      logs.append(Helper.exceptionToString(e));
+    }
+  }
+  private void titleGroupChanger(User u, Table oldOrgName)
+  { //assumes no org change, but maybe we should have it not assume that! have a boolean that declares if a change in org has occured also
+    String newTitle = UserFunctions.getTitle(u);
+    String oldTitle = oldOrgName.get(u.getPrimaryEmail(),"title");
+    boolean oldInvalid = oldTitle==null || oldTitle.trim().isEmpty();
+    boolean newInvalid = newTitle==null || newTitle.trim().isEmpty();
+    //should check if they are the same
+    if(!(oldInvalid || newInvalid)){ //only pass if both valid
+      if(!oldTitle.equals(newTitle)){//not efficient because there is no need to remove from staff, only to check if need to add or remove from managers
+        removeTitleGroup(u,oldTitle,oldOrgName.get(u.getPrimaryEmail(),"org"));
+        addTitleGroup(u, newTitle);
+      }
+      //else they are both valid and the same
+    }
+    else if(!(oldInvalid && newInvalid)){  //only be false when both are invalid, true if either are vaild
+      if(oldInvalid){
+        addTitleGroup(u, newTitle);
+      }else{
+        removeTitleGroup(u,oldTitle,oldOrgName.get(u.getPrimaryEmail(),"org"));
+      }
+    }//else both are invalid
+  }
 }
+
+//todo, am i accounting for when the org unit changes but not the title or visa versa?

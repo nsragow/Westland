@@ -29,4 +29,8 @@ public class Helper
   {
     return orgUnit.replace(" ","") + "staff@westlandreg.com";
   }
+  public static String orgUnitToManagerGroupEmail(String orgUnit)
+  {
+    return orgUnit.replace(" ","") + "management@westlandreg.com";
+  }
 }

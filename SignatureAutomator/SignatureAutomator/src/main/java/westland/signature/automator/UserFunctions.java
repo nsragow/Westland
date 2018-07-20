@@ -10,8 +10,12 @@ public class UserFunctions
   {
     Object orginizations = user.getOrganizations();
     List<ArrayMap<String,Object>> orgList = null;
-    orgList = SignatureBuilder.objectToArrayMapList(orginizations);
-    return orgList.get(0).get("title").toString();
+    try{
+      orgList = SignatureBuilder.objectToArrayMapList(orginizations);
+      return orgList.get(0).get("title").toString();
+    }catch(NullPointerException e){
+      throw new NullPointerException("Could not get title on user "+user.getPrimaryEmail()+" "+Helper.exceptionToString(e))
+    }
   }
   public static String getExt(User user)
   {

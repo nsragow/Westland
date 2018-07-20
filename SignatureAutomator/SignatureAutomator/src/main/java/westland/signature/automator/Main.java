@@ -4,6 +4,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.services.admin.directory.model.Channel;
 import com.google.api.services.admin.directory.model.User;
 import com.google.api.services.admin.directory.model.Users;
+import com.google.api.services.admin.directory.model.Group;
 import com.google.api.services.admin.directory.Directory.Users.Watch;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
@@ -218,6 +219,9 @@ public class Main
 
     }catch(LogException e){
       emailOrLog(e);
+    }//tempz
+    catch(Exception e){
+
     }
   }
 
@@ -243,7 +247,13 @@ public class Main
     GroupWrapper gw = new GroupWrapper(serviceManager);
     System.out.println("gw.hasGroup(tester@westlandreg.com) "+gw.hasGroup("tester@westlandreg.com"));
     System.out.println("adding...");
-    gw.addEmailToGroup("test@westlandreg.com","tester@westlandreg.com");
+    gw.addEmailToGroup("test@westlandreg.com","tester@westlandreg.com",0);
+    com.google.api.services.groupssettings.model.Groups group = serviceManager.getSettingsOfGroup("tester@westlandreg.com");
+    for(String o : group.keySet()){
+      System.out.println(o);
+      System.out.println(group.get(o));
+    }
+
 
   }
   private static void printUserData() throws Exception
@@ -348,6 +358,8 @@ public class Main
       orgDetector.checkForChangeInOrg();
     }catch(LogException e){
       emailOrLog(e);
+    }catch(Exception e){
+
     }
 
   }

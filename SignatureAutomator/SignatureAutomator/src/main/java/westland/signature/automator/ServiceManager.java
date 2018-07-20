@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.io.IOException;
 import com.google.api.services.drive.model.File;
+import com.google.api.services.groupssettings.Groupssettings;
 
 public class ServiceManager
 {
@@ -37,6 +38,7 @@ public class ServiceManager
   private String serviceAccount;
   private List<String> scopes;
   private Directory directory;
+  private Groupssettings groupssettings;
   protected ServiceManager(String main_email, String pathToP12, String serviceAccount)
   {
     main_account_it = main_email;
@@ -74,6 +76,14 @@ public class ServiceManager
   {
     return getDirectory().groups().get(key).execute();
   }
+  public com.google.api.services.groupssettings.model.Groups getSettingsOfGroup(String key) throws IOException
+  {
+    return getGroupsettings().groups().get(key).execute();
+  }
+  public void updateGroupSettings(String key, com.google.api.services.groupssettings.model.Groups content) throws IOException
+  {
+    getGroupsettings().groups().update(key,content).execute();
+  }
   public void makeNewGroup(Group group) throws IOException
   {
     getDirectory().groups().insert(group).execute();
@@ -90,6 +100,7 @@ public class ServiceManager
   {
     return getDirectory().members().hasMember(group,member).execute().getIsMember();
   }
+
   public void updateSheet(String fileID, String name, java.io.File file, String accountName) throws IOException
   {
     File fileMetadata = new File();
@@ -134,6 +145,18 @@ public class ServiceManager
   public User getUser(String email) throws IOException
   {
     return getDirectory().users().get(email).setProjection("full").execute();
+  }
+  protected Groupssettings getGroupsettings()
+  {
+    if(groupssettings != null){
+      return groupssettings;
+    }
+    GoogleCredential credential = getImpersonatedCredential(main_account_it);
+    HttpTransport httpTransport = getHttpTransport();
+    JacksonFactory jsonFactory = getJacksonFactory();
+
+    return (groupssettings = new Groupssettings.Builder(httpTransport, jsonFactory, null)
+    .setHttpRequestInitializer(credential).setApplicationName("Noah'sAppWestlandMiddleWare").build());
   }
   protected Drive getDrive(String email)
   {
