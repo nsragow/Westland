@@ -5,6 +5,7 @@ import java.util.*;
 public class OrgUnitDescription
 {
   HashMap<String,String> pairs;
+  HashSet<String> tags;
   static HashSet<String> allowedKeys = null;
   private void setUp()
   {
@@ -18,8 +19,14 @@ public class OrgUnitDescription
       allowedKeys.add("details");
       allowedKeys.add("fax");
       allowedKeys.add("phone");
+      allowedKeys.add("area");
+      allowedKeys.add("region");
 
     }
+  }
+  public void addTag(String tag)
+  {
+    tags.add(tag);
   }
   public boolean contains(String key)
   {
@@ -43,30 +50,32 @@ public class OrgUnitDescription
   {
     setUp();
     pairs = new HashMap<>();
-    HashMap<String,String> map = new HashMap<>();
+    tags = new HashSet<>();
+    List<String> list = new LinkedList<>();
     char[] chars = description.toCharArray();
     StringBuilder builder = new StringBuilder();
 
-    String key = null;
     for(int i = 0; i < chars.length; i++){
       switch(chars[i]){
         case '<':
           //builder = new StringBuilder(); there is no need to do this because it would already be reset
           break;
         case '>':
-          map.put(key,builder.toString());
-          builder = new StringBuilder();
-          break;
-        case '=':
-          key = builder.toString();
+          list.add(builder.toString());
           builder = new StringBuilder();
           break;
         default:
           builder.append(chars[i]);
       }
     }//todo make enums or something
-    for(String s : map.keySet()){
-      put(s,map.get(s));
+    for(String s : list){
+      if(s.contains("=")){
+        String[] split = s.split("=");
+        put(split[0],split[1]);
+
+      }else{
+        addTag(s);
+      }
     }
   }
   public OrgUnitDescription put(String key,String value)
@@ -95,6 +104,9 @@ public class OrgUnitDescription
       StringBuilder sb = new StringBuilder();
       for(String s : pairs.keySet()){
         sb.append("<"+s+"="+pairs.get(s)+">");
+      }
+      for(String s : tags){
+        sb.append("<"+s+">");
       }
       return sb.toString();
     }

@@ -1,5 +1,7 @@
 package westland.signature.automator;
 
+import java.net.SocketTimeoutException;
+import com.google.api.services.admin.directory.model.Users;
 import com.google.api.services.admin.directory.model.User;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -28,8 +30,13 @@ import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.IOException;
+import com.google.api.services.admin.directory.model.OrgUnit;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.groupssettings.Groupssettings;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Collections;
+
 
 public class ServiceManager
 {
@@ -39,6 +46,8 @@ public class ServiceManager
   private List<String> scopes;
   private Directory directory;
   private Groupssettings groupssettings;
+  private Set<User> userList;
+  private List<OrgUnit> orgList;
   protected ServiceManager(String main_email, String pathToP12, String serviceAccount)
   {
     main_account_it = main_email;
@@ -51,6 +60,7 @@ public class ServiceManager
     scopes.add(DirectoryScopes.ADMIN_DIRECTORY_GROUP_MEMBER);
     scopes.add(DirectoryScopes.ADMIN_DIRECTORY_ORGUNIT);
     scopes.add(DriveScopes.DRIVE);
+    scopes.add(com.google.api.services.groupssettings.GroupssettingsScopes.APPS_GROUPS_SETTINGS);
 
 
 
@@ -72,6 +82,31 @@ public class ServiceManager
   {
     return new JacksonFactory();
   }
+  public List<OrgUnit> getOrgList() throws IOException //todo, what if there are more orgunits then one call can handle
+  {
+    if(orgList == null){
+      orgList = getDirectory().orgunits().list("my_customer").execute().getOrganizationUnits();
+    }
+    return orgList;
+  }
+  public void updateOrg(OrgUnit o) throws IOException //todo, what if there are more orgunits then one call can handle
+  {
+    //try{
+      getDirectory().orgunits().update("my_customer",Collections.singletonList(o.getOrgUnitId()),o).execute();
+    //}catch(GoogleJsonResponseException e){
+      //throw e; //todo
+    //}
+  }
+  public OrgUnit getOrgUnit(String orgUnitName) throws IOException //todo, what if there are more orgunits then one call can handle
+  {
+    orgUnitName = orgUnitName.toLowerCase();
+    for(OrgUnit o : getOrgList()){
+      if(o.getName().toLowerCase().equals(orgUnitName)){
+        return o;
+      }
+    }
+    throw new RuntimeException("Could not find orgunit "+ orgUnitName);
+  }
   public Group getGroup(String key) throws IOException
   {
     return getDirectory().groups().get(key).execute();
@@ -87,6 +122,10 @@ public class ServiceManager
   public void makeNewGroup(Group group) throws IOException
   {
     getDirectory().groups().insert(group).execute();
+  }
+  public void deleteGroup(String group) throws IOException
+  {
+    getDirectory().groups().delete(group).execute();
   }
   public void addMemberToGroup(Member member, String group) throws IOException
   {
@@ -227,4 +266,49 @@ public class ServiceManager
     .execute();
 
   }
+  public Set<User> getUserList()
+  {
+    if(userList == null){
+      userList = getUserList(null,null);
+    }
+    return userList;
+  }
+  public Set<User> getUserSetBlackRemoved()
+  {
+    if(userList == null){
+      userList = getUserList(null,null);
+    }
+    HashSet<User> toReturn = new HashSet<>();
+    for(User u : userList){
+      if(!Strings.BlackList.contains(u.getPrimaryEmail())&&!Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
+        toReturn.add(u);
+      }
+    }
+    return toReturn;
+  }
+  private Set<User> getUserList(String token, Set<User> results)
+  {
+    Set<User> users;
+    if(results != null){
+      users = results;
+    }else{
+      users = new HashSet<User>();
+    }
+    try{
+      do{
+        Directory.Users.List list = getDirectory().users().list().setCustomer("my_customer").setMaxResults(5).setOrderBy("email").setProjection("full");
+        if(token!=null)list.setPageToken(token);
+        Users userobj = list.execute();
+        token = userobj.getNextPageToken();
+        users.addAll(userobj.getUsers());
+
+      }while(token!=null);
+      return users;
+    }catch(SocketTimeoutException e){
+      return getUserList(token, users);
+    }catch(IOException e){
+      throw new FatalException("FATAL: Could not connect to Google for DataMap initialization: "+e.toString());
+    }
+  }
+
 }

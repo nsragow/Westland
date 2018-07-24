@@ -1,0 +1,340 @@
+package westland.signature.automator;
+
+import com.google.api.services.admin.directory.model.OrgUnit;
+import java.util.*;
+import java.io.IOException;
+import com.google.api.services.admin.directory.model.User;
+
+
+//this class is meant to be used from the command line
+public class Commands
+{
+  public static final boolean APPLY_BLACKLIST = false;
+  public static final boolean IGNORE_BLACKLIST = true;
+  public static final String FIELD_NOT_FOUND = "field not found";
+
+  private ServiceManager serviceManager;
+  private GroupWrapper gW;
+
+  public Commands(ServiceManager serviceManager)
+  {
+    this.serviceManager = serviceManager;
+    gW = new GroupWrapper(serviceManager);
+  }
+  public Set<User> formattedUserStringToList(String userString) throws IOException
+  {
+    Set<User> users;
+    userString = userString.toLowerCase();
+    users = serviceManager.getUserSetBlackRemoved();
+    if(userString.contains("*")){
+      if(userString.contains(" where ")){
+        String[] afterWhere = userString.split(" where ");
+        if(afterWhere.length != 2){
+          throw new RuntimeException("formatted user string has unfinished or multiple where statements");
+        }
+        String[] qualifiers = afterWhere[1].split(",");
+
+        for(String q : qualifiers){//only does contains and title now todo
+          String[] qualifier = q.split(" ");
+          if(qualifier.length != 3){
+            throw new RuntimeException("formatted user string has improper qualifier: "+q);
+          }
+          Iterator<User> i = users.iterator();
+          while(i.hasNext()){
+            User next = i.next();
+            try{
+              if(!UserFunctions.getTitle(next).toLowerCase().contains(qualifier[2])){
+                i.remove();
+              }
+            }catch(Exception e){
+              i.remove();
+            }
+          }
+
+        }
+        return users;
+      }else{
+        return users;
+      }
+    }else{//todo assumes only one name
+      throw new RuntimeException();
+    }
+  }
+  public boolean editOrgTags(String orgUnit, String[] tags)
+  {
+    if(orgUnit.contains("*")){
+      List<OrgUnit> orgs;
+      try{
+        orgs = serviceManager.getOrgList();
+      }catch(IOException e){
+        System.out.println("Hit the following exception when collecting orgunits. Do you want to try again? (Y/N)");
+        e.printStackTrace();
+        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+          return editOrgTags(orgUnit,tags);
+        }else{
+          return false;
+        }
+      }
+      for(OrgUnit o : orgs){
+        printOrgInfo(o.getName(),tags);//inefficient as of now
+      }
+      return true;
+    }else{
+      OrgUnit o;
+      try{
+        o = serviceManager.getOrgUnit(orgUnit);
+      }catch(Exception e){
+        System.out.println("Hit the following exception when finding orgunit "+ orgUnit+". Do you want to try again? (Y/N)");
+        e.printStackTrace();
+        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+          return editOrgTags(orgUnit,tags);
+        }else{
+          return false;
+        }
+      }
+
+      OrgUnitDescription oD = new OrgUnitDescription(o.getDescription());
+      for(String tag : tags){
+        if(tag.contains("=")){
+          String[] split = tag.split("=");
+          if(split.length<2){
+            System.out.println("Tag format " + tag + " is not accepted, skipping...");
+          }else{
+            oD.put(split[0],split[1]);
+          }
+        }else{
+          oD.addTag(tag);
+        }
+      }
+      o.setDescription(oD.toString());
+      try{
+        serviceManager.updateOrg(o);
+        return true;
+      }catch(Exception e){
+        System.out.println("Hit the following exception when editing orgunit "+ o.getName()+". Do you want to try again? (Y/N)");
+        e.printStackTrace();
+        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+          return editOrgTags(orgUnit,tags);
+        }else{
+          return false;
+        }
+      }
+    }
+  }
+  public boolean printOrgInfo(String orgUnit, String[] tags)
+  {
+    if(orgUnit.contains("*")){
+      List<OrgUnit> orgs;
+      try{
+        orgs = serviceManager.getOrgList();
+      }catch(IOException e){
+        System.out.println("Hit the following exception when collecting orgunits. Do you want to try again? (Y/N)");
+        e.printStackTrace();
+        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+          return printOrgInfo(orgUnit,tags);
+        }else{
+          return false;
+        }
+      }
+      for(OrgUnit o : orgs){
+        printOrgInfo(o.getName(),tags);//inefficient as of now
+      }
+      return true;
+    }else{
+      OrgUnit o;
+      try{
+        o = serviceManager.getOrgUnit(orgUnit);
+      }catch(Exception e){
+        System.out.println("Hit the following exception when finding orgunit "+ orgUnit+". Do you want to try again? (Y/N)");
+        e.printStackTrace();
+
+        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+          return printOrgInfo(orgUnit,tags);
+        }else{
+          return false;
+        }
+      }
+
+      OrgUnitDescription oD = new OrgUnitDescription(o.getDescription());
+      System.out.println("--------------------------------------");
+      for(String tag : tags){
+        String field = tag.toLowerCase().trim();
+        System.out.print(field+": ");
+        switch(field){
+          case "name": System.out.println(o.getName()); break;
+          default:
+          if(oD.contains(field)){
+            System.out.println(oD.get(field));
+          }else{
+            System.out.println(FIELD_NOT_FOUND);
+          }
+        }
+
+      }
+      return true;
+    }
+  }
+  public boolean makeGroupMembers(String userDef, String orgDef, String groupDef)
+  {
+
+    if(userDef.trim().contains("*")){
+      Set<User> users;
+      try{
+        users = formattedUserStringToList(userDef);
+      }catch(IOException e){
+        System.out.println("Hit the following exception when collecting users. Do you want to try again? (Y/N)");
+        e.printStackTrace();
+        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+          return makeGroupMembers(userDef,orgDef,groupDef);
+        }else{
+          return false;
+        }
+      }
+      if(orgDef.trim().equals("*")){
+        if(groupDef.contains("#")){//this is not necessarily making the right assumptions
+          String editedGroupKey;
+          for(User u : users){
+            if(!u.getOrgUnitPath().equals("/")){
+              editedGroupKey = groupDef.replace("#",(Helper.orgPathToName(u.getOrgUnitPath()).replace(" ","")));
+              makeUserMember(u,editedGroupKey);
+            }
+
+          }
+        }else{
+          makeUsersMembers(users, groupDef);
+
+        }
+      }
+    }else{
+      //work on this later, also maybe more stuff above todo
+      throw new RuntimeException("not currently supported");
+    }
+    return true; //todo
+  }
+  private boolean makeUserMember(User u, String groupKey)
+  {
+    try{
+      return gW.addEmailToGroup(u.getPrimaryEmail(),groupKey);
+    }catch(IOException e){
+      System.out.println("Hit the following exception when adding "+u.getPrimaryEmail()+ " to " + groupKey + ". Do you want to try again? (Y/N)");
+      if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+        return makeUserMember(u,groupKey);
+      }else{
+        return false;
+      }
+    }
+  }
+  private void makeUsersMembers(Collection<User> users, String groupKey)
+  {
+    for(User u : users){
+      try{
+        gW.addEmailToGroup(u.getPrimaryEmail(),groupKey);
+      }catch(IOException e){
+        System.out.println("Hit the following exception when adding "+u.getPrimaryEmail()+ " to " + groupKey + ". Do you want to try again? (Y/N)");
+        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+          makeUserMember(u,groupKey);
+        }
+      }
+    }
+  }
+  public void massGroupCreator(String formattedEmail, String formattedName, String formattedDesc, int groupType ,boolean allowBlackListed)
+  {
+    // the # charater is used to indicate where the org name should be placed in
+    GroupWrapper gW = new GroupWrapper(serviceManager);
+    List<OrgUnit> orgs;
+    try{
+      orgs = serviceManager.getOrgList();
+    }catch(IOException e){
+      System.out.println("failed to retrieve org units: ");
+      e.printStackTrace();
+      return;
+    }
+    String groupEmail;
+    String groupName;
+    String groupDesc;
+    String orgUnitName;
+    int createCount = 0;
+    boolean attemptAgain = false;
+    for(OrgUnit o : orgs){
+      attemptAgain = true;
+      orgUnitName = Helper.orgPathToName(o.getOrgUnitPath());
+      if(!Strings.BlackList.contains(orgUnitName) || allowBlackListed == IGNORE_BLACKLIST){
+        groupEmail = formattedEmail.replace("#",(orgUnitName.replace(" ","")));
+        groupName = formattedName.replace("#",(orgUnitName));
+        groupDesc = formattedDesc.replace("#",(orgUnitName));
+        while(attemptAgain){
+          attemptAgain = false;
+          try{
+            if(gW.createGroup(groupEmail,groupName,groupDesc,groupType)){
+              createCount++;
+            }
+          }catch(IOException e){
+            System.out.println("Hit the following error when trying to create group "+groupEmail);
+            e.printStackTrace();
+            System.out.println("\nAttempt again or skip? (Y/N)");
+            attemptAgain = waitOnYesOrNo();
+          }
+        }
+      }
+    }
+    System.out.println("created " +createCount+ " groups");
+  }
+  public void massGroupDeleter(String formattedString, boolean allowBlackListed)
+  {
+    // the # charater is used to indicate where the org name should be placed in
+    GroupWrapper gW = new GroupWrapper(serviceManager);
+    List<OrgUnit> orgs;
+    try{
+      orgs = serviceManager.getOrgList();
+    }catch(IOException e){
+      System.out.println("failed to retrieve org units: ");
+      e.printStackTrace();
+      return;
+    }
+    String groupEmail;
+    String orgUnitName;
+    int createCount = 0;
+    boolean attemptAgain = false;
+    for(OrgUnit o : orgs){
+      attemptAgain = true;
+      orgUnitName = Helper.orgPathToName(o.getOrgUnitPath());
+      if(!Strings.BlackList.contains(orgUnitName) || allowBlackListed == IGNORE_BLACKLIST){
+        groupEmail = formattedString.replace("#",(orgUnitName.replace(" ","")));
+
+        while(attemptAgain){
+          attemptAgain = false;
+          try{
+            if(gW.deleteGroup(groupEmail)){
+              createCount++;
+            }
+          }catch(IOException e){
+            System.out.println("Hit the following error when trying to delete group "+groupEmail);
+            e.printStackTrace();
+            System.out.println("\nAttempt again or skip? (Y/N)");
+            attemptAgain = waitOnYesOrNo();
+          }
+        }
+      }
+    }
+    System.out.println("deleted " +createCount+ " groups");
+  }
+
+  private boolean waitOnYesOrNo()
+  {
+    Scanner sc = new Scanner(System.in);
+    while(true){
+      String line = sc.nextLine();
+      line = line.toLowerCase().trim();
+      if(line.equals("y")){
+        return true;
+      }else if(line.equals("n")){
+        return false;
+      }else{
+        System.out.println("Please answer 'Y' or 'N'");
+      }
+    }
+  }
+
+
+
+}

@@ -285,9 +285,9 @@ public class OrgMovementDetector
   {
     try{
       if(title.toLowerCase().contains("manager")){
-        gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToManagerGroupEmail(Helper.orgPathToName(u.getOrgUnitPath())),GroupWrapper.MANAGEMENT);
+        gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToManagerGroupEmail(Helper.orgPathToName(u.getOrgUnitPath())));
       }
-      gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToStaffGroupEmail(Helper.orgPathToName(u.getOrgUnitPath())),GroupWrapper.STAFF);
+      gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToStaffGroupEmail(Helper.orgPathToName(u.getOrgUnitPath())));
     }catch(IOException e){
       logs.append(Helper.exceptionToString(e));
     }

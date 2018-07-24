@@ -28,6 +28,7 @@ task fatJar(type: Jar) {
 }
 run {
     args = ["C:/Users/Westland/NoahsProjects/Westland/SignatureAutomator/SignatureAutomator", "-test"]
+    standardInput = System.in
 }
 
 

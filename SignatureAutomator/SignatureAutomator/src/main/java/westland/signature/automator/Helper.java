@@ -1,6 +1,9 @@
 package westland.signature.automator;
+
 import java.io.StringWriter;
 import java.io.PrintWriter;
+import java.util.*;
+
 public class Helper
 {
   protected static String orgPathToName(String path)
@@ -32,5 +35,35 @@ public class Helper
   public static String orgUnitToManagerGroupEmail(String orgUnit)
   {
     return orgUnit.replace(" ","") + "management@westlandreg.com";
+  }
+  public static String areaToGroupEmail(String areaName)
+  {
+    return areaName.replace(" ","") + "area@westlandreg.com";
+  }
+  public static String regionToGroupEmail(String regionName)
+  {
+    return regionName.replace(" ","") + "region@westlandreg.com";
+  }
+  public static int waitOnOption(String[] options)
+  {
+    Scanner sc = new Scanner(System.in);
+    while(true){
+      String line = sc.nextLine();
+      line = line.toLowerCase().trim();
+      for(int i = 0; i < options.length; i++){
+        if(line.equals(options[i].toLowerCase())){
+          return i;
+        }
+      }
+      System.out.println("Option not recognized");
+      System.out.print("Please choose (");
+      for(int i = 0; i < options.length; i++){
+        System.out.print(options[i]);
+        if(i != options.length-1){
+          System.out.print("/");
+        }
+      }
+      System.out.println(")");
+    }
   }
 }

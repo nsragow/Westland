@@ -14,7 +14,7 @@ public class GroupSettingUpdater
   }
   public static Groups setSettingsToStaff(Groups group)
   {
-    group.setWhoCanPostMessage("ALL_MANAGERS_CAN_POST");
+    group.setWhoCanPostMessage("ALL_MEMBERS_CAN_POST");
     group.setShowInGroupDirectory("true");
     group.setIncludeInGlobalAddressList("true");
 

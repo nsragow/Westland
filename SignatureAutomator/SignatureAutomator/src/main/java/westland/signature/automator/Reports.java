@@ -48,7 +48,7 @@ public class Reports
     Date dateobj = new Date();
     toSend.append("Runthrough --");
     toSend.append(df.format(dateobj));
-    toSend.append("--\r\n\r\n");
+    toSend.append("--\r\n");
     for(String s : logs){
       toSend.append("\t");
       toSend.append("LOG: "+s);
@@ -58,7 +58,7 @@ public class Reports
       toSend.append("ERROR: "+s);
     }
     if(errors.isEmpty()){
-      toSend.append("\nNo errors today!\n");
+      toSend.append("No errors today!");
     }
     return toSend.toString();
 

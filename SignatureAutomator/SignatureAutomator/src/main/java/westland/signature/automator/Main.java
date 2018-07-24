@@ -242,17 +242,8 @@ public class Main
   private static void runTest() throws Exception
   {
 
-    Directory service = null;
-    Gmail gmail = null;
-    GroupWrapper gw = new GroupWrapper(serviceManager);
-    System.out.println("gw.hasGroup(tester@westlandreg.com) "+gw.hasGroup("tester@westlandreg.com"));
-    System.out.println("adding...");
-    gw.addEmailToGroup("test@westlandreg.com","tester@westlandreg.com",0);
-    com.google.api.services.groupssettings.model.Groups group = serviceManager.getSettingsOfGroup("tester@westlandreg.com");
-    for(String o : group.keySet()){
-      System.out.println(o);
-      System.out.println(group.get(o));
-    }
+    new CommandInterface(serviceManager);
+    //com.massGroupCreator("#staff@westlandreg.com","# Staff","All staff at #",GroupWrapper.STAFF,Commands.APPLY_BLACKLIST);
 
 
   }
