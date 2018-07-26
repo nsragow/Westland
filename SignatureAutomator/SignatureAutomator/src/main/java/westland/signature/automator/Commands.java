@@ -12,6 +12,7 @@ public class Commands
   public static final boolean APPLY_BLACKLIST = false;
   public static final boolean IGNORE_BLACKLIST = true;
   public static final String FIELD_NOT_FOUND = "field not found";
+  public static final String SEPERATOR = "____________________________________________________";
 
   private ServiceManager serviceManager;
   private GroupWrapper gW;
@@ -21,7 +22,47 @@ public class Commands
     this.serviceManager = serviceManager;
     gW = new GroupWrapper(serviceManager);
   }
-  public Set<User> formattedUserStringToList(String userString) throws IOException
+  public void printUserData(String pathToPrint)
+  {
+    Table table = new Table(new String[]{"First","Last","Email","Org","Title","Ext"});
+    for(User u : serviceManager.getUserSetBlackRemoved()){
+      if(!u.getSuspended()){
+        String first = u.getName().getGivenName();
+        String last = u.getName().getFamilyName();
+        String email = u.getPrimaryEmail();
+        String org = Helper.orgPathToName(u.getOrgUnitPath());
+        String title;
+        try{
+          title = UserFunctions.getTitle(u);
+        }catch(Exception e){
+          System.out.println(email);
+          title = "";
+        }
+        String ext = UserFunctions.getExt(u);
+
+
+
+        table.addRow(new String[]{first,last,email,org,title,ext});
+      }
+
+    }
+    boolean again;
+    do{
+      again = false;
+      try{
+        Table.writeTableToCSV(table,pathToPrint);
+      }catch(Exception e){
+        System.out.println(e);
+        System.out.println("Hit the above exception when trying to write to CSV. Change path? Otherwise the operation will be aborted. (Y/N)");
+        if(0==Helper.waitOnOption(new String[]{"Y","N"})){
+          again = true;
+          System.out.println("Enter the path to csv. ex/ /home/joe/documents/userdata.csv");
+          pathToPrint = new Scanner(System.in).nextLine();
+        }
+      }
+    }while(again);
+  }
+  public Set<User> formattedUserStringToSet(String userString) throws IOException
   {
     Set<User> users;
     userString = userString.toLowerCase();
@@ -58,6 +99,34 @@ public class Commands
       }
     }else{//todo assumes only one name
       throw new RuntimeException();
+    }
+  }
+  public void printUserInfo(String formattedString, String[] fields)
+  {
+
+    Set<User> users;
+    try{
+      users = formattedUserStringToSet(formattedString);
+    }catch(IOException e){
+      e.printStackTrace();
+      System.out.println("The above exception was caught when trying to collect users from Google. Try again? (Y/N)");
+      if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+        printUserInfo(formattedString,fields);
+      }
+      return;
+    }
+    for(String field : fields){
+      field = field.toLowerCase().trim();
+    }
+    for(User u : users){
+      System.out.println(SEPERATOR);
+      for(String field : fields){
+        switch(field){
+          case "title": try{System.out.println("title: "+UserFunctions.getTitle(u));}catch(Exception e){System.out.println("title: not found");}
+          break;
+          default:System.out.println(field+": field not supported");
+        }
+      }
     }
   }
   public boolean editOrgTags(String orgUnit, String[] tags)
@@ -180,7 +249,7 @@ public class Commands
     if(userDef.trim().contains("*")){
       Set<User> users;
       try{
-        users = formattedUserStringToList(userDef);
+        users = formattedUserStringToSet(userDef);
       }catch(IOException e){
         System.out.println("Hit the following exception when collecting users. Do you want to try again? (Y/N)");
         e.printStackTrace();
@@ -278,6 +347,27 @@ public class Commands
       }
     }
     System.out.println("created " +createCount+ " groups");
+  }
+  public void createGroup(String email, String name, String desc, int type ,boolean allowBlackListed)
+  {
+    // the # charater is used to indicate where the org name should be placed in
+    GroupWrapper gW = new GroupWrapper(serviceManager);
+
+
+    boolean attemptAgain = false;
+
+    attemptAgain = true;
+    while(attemptAgain){
+      attemptAgain = false;
+      try{
+        gW.createGroup(email,name,desc,type);
+      }catch(IOException e){
+        System.out.println("Hit the following error when trying to create group "+email);
+        e.printStackTrace();
+        System.out.println("\nAttempt again or skip? (Y/N)");
+        attemptAgain = waitOnYesOrNo();
+      }
+    }
   }
   public void massGroupDeleter(String formattedString, boolean allowBlackListed)
   {

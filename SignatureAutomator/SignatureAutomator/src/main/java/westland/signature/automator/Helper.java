@@ -6,6 +6,7 @@ import java.util.*;
 
 public class Helper
 {
+  //will not work for nested orgs
   protected static String orgPathToName(String path)
   {
     String orgUnitPath = path;

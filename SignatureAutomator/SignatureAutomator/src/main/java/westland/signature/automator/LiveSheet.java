@@ -25,10 +25,12 @@ public class LiveSheet
   private static final String ACCOUNT = "noah.s@westlandreg.com";
 
   private ServiceManager serviceManager;
+  private Set<String> signaturesToUpdate;
 
   public LiveSheet(ServiceManager sM)
   {
     serviceManager = sM;
+    signaturesToUpdate = new HashSet<>();
   }
 
   //as of now this only works with the one live sheet
@@ -42,6 +44,7 @@ public class LiveSheet
         try{
           updateUser(table[i]);
           table[i][UPDATE] = "no";
+          signaturesToUpdate.add(table[i][EMAIL]);
         }catch(LogException e){
 
           stringBuilder.append(Helper.exceptionToString(e));
@@ -61,6 +64,16 @@ public class LiveSheet
     }
     fw.close();
     serviceManager.updateSheet(FILE_ID, "User_Live_Sheet", file, ACCOUNT);
+    if(!signaturesToUpdate.isEmpty()){
+      SignatureUpdater su = new SignatureUpdater(new DataCollector(serviceManager, new StringBuilder()).getDataMap(),serviceManager);
+      for(String email : signaturesToUpdate){
+        try{
+          su.updateSignature(email);
+        }catch(IOException e){
+          stringBuilder.append(Helper.exceptionToString(e));
+        }
+      }
+    }
     if(stringBuilder.length() != 0){
       throw new LogException("There were error: " + stringBuilder.toString());
     }

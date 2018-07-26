@@ -63,7 +63,7 @@ import java.io.FileOutputStream;
 
 public class DataCollector
 {
-  private Directory dir;
+  private ServiceManager serviceManager;
   private Map<String,SignatureBuilder> dataMap;
   private Map<String,OrgUnitDescription> orgMap;
   private boolean organized;
@@ -72,9 +72,9 @@ public class DataCollector
   /**
   * make sure the ordering is correct in the defaultAddress
   */
-  public DataCollector(Directory dir,StringBuilder logs)
+  public DataCollector(ServiceManager serviceManager,StringBuilder logs)
   {
-    this.dir = dir;
+    this.serviceManager = serviceManager;
     organized = false;
     users = new HashSet<>();
     this.logs = logs;
@@ -99,29 +99,11 @@ public class DataCollector
   private void setUpDataMap(String token)
   {
     dataMap = new HashMap<>();
-    try{
-      do{
-        Directory.Users.List list = dir.users().list().setCustomer("my_customer").setMaxResults(5).setOrderBy("email").setProjection("full");
-        if(token!=null)list.setPageToken(token);
-        Users users = list.execute();
-        token = users.getNextPageToken();
-        List<User> usersList = users.getUsers();
-        for(User u : usersList){
-          this.users.add(u);
-          if(!Strings.BlackList.contains(u.getPrimaryEmail()) && !Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
-
-            dataMap.put(u.getPrimaryEmail(),new SignatureBuilder(u));
-          }else{
-            //System.out.println("skipped "+u.getPrimaryEmail().toString());
-          }
-        }
-      }while(token!=null);
-    }catch(SocketTimeoutException e){
-      setUpDataMap(token);
-    }catch(IOException e){
-      throw new FatalException("FATAL: Could not connect to Google for DataMap initialization: "+e.toString());
+    Set<User> userSet = serviceManager.getUserSetBlackRemoved();
+    for(User u : userSet){
+      this.users.add(u);
+      dataMap.put(u.getPrimaryEmail(),new SignatureBuilder(u));
     }
-
   }
 
   private void setUpOrgMap()
@@ -129,8 +111,7 @@ public class DataCollector
     orgMap = new HashMap<>();
     try{
 
-      OrgUnits orgunits = dir.orgunits().list("my_customer").execute();
-      List<OrgUnit> list = orgunits.getOrganizationUnits();
+      List<OrgUnit> list = serviceManager.getOrgList();
 
       for(OrgUnit o : list){
         if(!o.getDescription().equals("#ignore")){

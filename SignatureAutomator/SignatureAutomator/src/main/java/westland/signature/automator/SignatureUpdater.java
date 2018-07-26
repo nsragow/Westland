@@ -83,22 +83,25 @@ public class SignatureUpdater
 
   }
 
+  public void updateSignature(String email) throws IOException
+  {
+    if(!dataMap.get(email).isComplete()){
+      logs.append(email + " does not have sufficient information on their user+orgunit to create proper signature - signature not created\n");
+    }else{
+      //System.out.println("updated sig for "+email);
+      serviceManager.changeUserSignature(email, SignatureGenerator.makeSignature(dataMap.get(email)));
+    }
+  }
+
   public void updateSignatures() throws IOException
   {
-
-
-
     //at this point we only need to apply the dataMap to the signatures
     for(String email : dataMap.keySet()){
 
-      if(!dataMap.get(email).isComplete()){
-        logs.append(email + " does not have sufficient information on their user+orgunit to create proper signature - signature not created\n");
-      }else{
-        //System.out.println("updated sig for "+email);
-        serviceManager.changeUserSignature(email, SignatureGenerator.makeSignature(dataMap.get(email)));
-      }
+      updateSignature(email);
 
     }
+    /*
     System.out.println("\n\n\n\n");
     Table table = new Table(new String[]{"Email","Name","Org","Website","Address","Phones","Title"});
     for(SignatureBuilder sigB : dataMap.values()){
@@ -114,7 +117,7 @@ public class SignatureUpdater
     }
     System.out.println("\n\n\n\n");
     //System.out.println(orgMap);
-
+    */
 
 
     if(logs.length() != 0){

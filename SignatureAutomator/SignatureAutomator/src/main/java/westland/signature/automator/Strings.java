@@ -30,4 +30,5 @@ public class Strings
   static Set<String> BlackList;
   static Set<String> Rollout;
   static String workingDirectory;
+  static String officeSpaceAPIkey;
 }

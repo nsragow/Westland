@@ -67,6 +67,17 @@ import org.apache.commons.codec.binary.Base64;
 
 public class OrgMovementDetector
 {
+  private static final int DO_NOTHING = 0;
+  private static final int TITLE_CHANGE = 1;
+  private static final int FULL_CHANGE = 2;
+  private static final int OFFBOARD = 3;
+  private static final int ONBOARD = 4;
+  private static final int STAFF = 2;
+  private static final int MANAGER = 1;
+  private static final int AREA_MANAGER = 0;
+
+
+
   private Set<User> users;
   private Map<String,SignatureBuilder> dataMap;
   private Map<String,OrgUnitDescription> orgMap;
@@ -75,9 +86,10 @@ public class OrgMovementDetector
   private Directory service;
   private Table orgToGroup;
   private GroupWrapper gW;
-  public OrgMovementDetector(Set<User> users, Map<String,SignatureBuilder> dataMap, Map<String,OrgUnitDescription> orgMap, ServiceManager serviceManager)
+  public OrgMovementDetector(Set<User> users, Map<String,SignatureBuilder> dataMap, Map<String,OrgUnitDescription> orgMap, ServiceManager serviceManager) throws IOException
   {
-    this.users = users;
+
+    this.users = serviceManager.getUserSetBlackRemoved();
     this.dataMap = dataMap;
     this.orgMap = orgMap;
     logs = new StringBuilder();
@@ -87,7 +99,250 @@ public class OrgMovementDetector
     orgToGroup = csvread.getTable();
     gW = new GroupWrapper(serviceManager);
   }
+  private int titleToID(String title)
+  {
+    title = title.toLowerCase();
+    if(title.contains("manager")){
+      if(title.contains("area")){
+        return AREA_MANAGER;
+      }else{
+        return MANAGER;
+      }
+    }else{
+      return STAFF;
+    }
+  }
+  private int movementStatus(User u, Table oldInfo)
+  {
+    //do we need to offboard?
+    if(u.getSuspended()){
+      if(oldInfo.containsKey(u.getPrimaryEmail())){
+        return OFFBOARD;
+      }else{
+        return DO_NOTHING;
+      }
+    }
 
+    if(!oldInfo.containsKey(u.getPrimaryEmail())){
+      return ONBOARD;
+    }
+
+    if(!oldInfo.get(u.getPrimaryEmail(),"org").trim().toLowerCase().equals(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().trim())){
+      return FULL_CHANGE;
+    }
+    //at this point we know the orgs are the same
+    String oldTitle = oldInfo.get(u.getPrimaryEmail(),"title");
+    String newTitle;
+    try{
+      newTitle = UserFunctions.getTitle(u);
+    }catch(Exception e){
+      newTitle = "";
+    }
+    //initialize null titles
+    if(newTitle == null){
+      newTitle = "";
+    }
+    if(oldTitle == null){
+      oldTitle = "";
+    }
+    if(oldTitle.toLowerCase().trim().equals(newTitle.toLowerCase().trim())){
+      return DO_NOTHING;
+    }else{
+      return TITLE_CHANGE;
+    }
+
+  }
+  private void removeFromAllGroups(String userName, String title, String org, String area, String region) throws IOException
+  {
+    int titleID = titleToID(title);
+    switch(titleID){
+      case AREA_MANAGER:
+        if(area!=null){
+          gW.removeEmailFromGroup(userName, Helper.areaToGroupEmail(area));
+        }
+        if(region!=null){
+          gW.removeEmailFromGroup(userName, Helper.regionToGroupEmail(region));
+        }
+      case MANAGER:
+        gW.removeEmailFromGroup(userName, Helper.orgUnitToManagerGroupEmail(org));
+      case STAFF:
+        gW.removeEmailFromGroup(userName, Helper.orgUnitToStaffGroupEmail(org));
+        break;
+      default:
+        throw new RuntimeException("Unexpected Error");
+    }
+  }
+  private void addToAllGroups(String userName, String title, String org, String area, String region) throws IOException
+  {
+    int titleID = titleToID(title);
+    switch(titleID){
+      case AREA_MANAGER:
+        if(area!=null){
+          gW.addEmailToGroup(userName, Helper.areaToGroupEmail(area));
+        }
+        if(region!=null){
+          gW.addEmailToGroup(userName, Helper.regionToGroupEmail(region));
+        }
+      case MANAGER:
+        gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(org));
+      case STAFF:
+        gW.addEmailToGroup(userName, Helper.orgUnitToStaffGroupEmail(org));
+        break;
+      default:
+        throw new RuntimeException("Unexpected Error");
+    }
+  }
+  private void removeFromTitleGroups(String userName, String title, String org, String area, String region) throws IOException
+  {
+    int titleID = titleToID(title);
+    switch(titleID){
+      case AREA_MANAGER:
+        if(area!=null){
+          gW.removeEmailFromGroup(userName, Helper.areaToGroupEmail(area));
+        }
+        if(region!=null){
+          gW.removeEmailFromGroup(userName, Helper.regionToGroupEmail(region));
+        }
+      case MANAGER:
+        gW.removeEmailFromGroup(userName, Helper.orgUnitToManagerGroupEmail(org));
+      case STAFF:
+        break;
+      default:
+        throw new RuntimeException("Unexpected Error");
+    }
+  }
+  private void addToTitleGroups(String userName, String title, String org, String area, String region) throws IOException
+  {
+    int titleID = titleToID(title);
+    switch(titleID){
+      case AREA_MANAGER:
+        if(area!=null){
+          gW.addEmailToGroup(userName, Helper.areaToGroupEmail(area));
+        }
+        if(region!=null){
+          gW.addEmailToGroup(userName, Helper.regionToGroupEmail(region));
+        }
+      case MANAGER:
+        gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(org));
+      case STAFF:
+        break;
+      default:
+        throw new RuntimeException("Unexpected Error");
+    }
+  }
+
+  public void checkForChangeInOrg(User u, Table oldOrgTable)
+  {
+    boolean oldValid = false;
+    boolean newValid = false;
+    int status = movementStatus(u,oldOrgTable);
+    String org = Helper.orgPathToName(u.getOrgUnitPath());
+    String area;
+    String region;
+    String title;
+    if(orgMap.containsKey(org)){
+      OrgUnitDescription desc = orgMap.get(org);
+      area = desc.get("area");
+      region = desc.get("region");
+    }else{
+      throw new LogException("org map did not have proper set up for new info");
+    }
+    try{
+      title = UserFunctions.getTitle(u);
+    }catch(Exception e){
+      title = "";
+    }
+    String oldOrg;
+    if(oldOrgTable.containsKey(u.getPrimaryEmail())){
+      oldOrg = oldOrgTable.get(u.getPrimaryEmail(),"org");
+    }else{
+      oldOrg = null;
+      oldValid = false;
+    }
+    String oldArea;
+    String oldRegion;
+    String oldTitle;
+    if(orgMap.containsKey(oldOrg)){
+      OrgUnitDescription desc = orgMap.get(oldOrg);
+      oldArea = desc.get("area");
+      oldRegion = desc.get("region");
+      oldValid = true;
+    }else{
+      oldArea = null;
+      oldRegion = null;
+      oldValid = false;
+    }
+    try{
+      oldTitle = oldOrgTable.get(u.getPrimaryEmail(),"title");
+    }catch(IllegalArgumentException e){
+      oldTitle = "";
+      status = ONBOARD;
+    }
+    if(oldTitle == null){
+      oldTitle="";
+    }
+
+    switch(status){
+      case DO_NOTHING:
+      break;
+
+      case TITLE_CHANGE:
+        if(!oldValid){
+          throw new LogException("trying to mess with old info that is not valid");
+        }
+        try{
+          removeFromTitleGroups(u.getPrimaryEmail(),oldTitle,oldOrg,oldArea,oldRegion);
+          addToTitleGroups(u.getPrimaryEmail(),title,org,area,region);
+          oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title});
+        }catch(Exception e){
+          logs.append(Helper.exceptionToString(e));
+          logs.append("\r\n");
+        }
+      break;
+
+      case FULL_CHANGE:
+        if(!oldValid){
+          throw new LogException("trying to mess with old info that is not valid");
+        }
+        try{
+          removeFromAllGroups(u.getPrimaryEmail(),oldTitle,oldOrg,oldArea,oldRegion);
+          addToAllGroups(u.getPrimaryEmail(),title,org,area,region);
+          sendEmailOnOrgChange(u,oldOrg);
+          oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title});
+        }catch(Exception e){
+          logs.append(Helper.exceptionToString(e));
+          logs.append("\r\n");
+        }
+      break;
+
+      case OFFBOARD:
+        u.setOrgUnitPath("/Offboard");
+        try{
+          removeFromAllGroups(u.getPrimaryEmail(),title,org,area,region);
+          service.users().update(u.getPrimaryEmail(),u).execute();
+          System.out.println(u.getOrgUnitPath());
+          oldOrgTable.remove(u.getPrimaryEmail());
+        }catch(Exception e){
+          logs.append(Helper.exceptionToString(e));
+          logs.append("\r\n");
+        }
+      break;
+
+      case ONBOARD:
+        try{
+          addToAllGroups(u.getPrimaryEmail(),title,org,area,region);
+          sendEmailOnNewUser(u);
+          oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title});
+        }catch(Exception e){
+          logs.append(Helper.exceptionToString(e));
+          logs.append("\r\n");
+        }
+      break;
+
+      default:
+      throw new RuntimeException("Unexpected Error");
+    }
+  }
   public void checkForChangeInOrg()
   {//todo!, now we must make sure that things are called in order, not sure but threads may affect this
 
@@ -98,32 +353,10 @@ public class OrgMovementDetector
     Table oldOrgTable = Initializer.getTable(Strings.current_user_orgs);
 
     for(User u : users){
-
-      if(!u.getSuspended()){
-        if(!Strings.BlackList.contains(u.getPrimaryEmail())&&!Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
-          String oldOrgName = null;
-          String newOrgName = null;
-          newOrgName = Helper.orgPathToName(u.getOrgUnitPath());
-          //titleAndOrgToGroup(u,newOrgName);
-          if(oldOrgTable.containsKey(u.getPrimaryEmail())){
-
-            userFoundWorkflow(newOrgName,u,oldOrgTable);
-
-          }else{// we havent seen this user before
-
-            newUserWorkflow(u,newOrgName,oldOrgTable);
-          }
-
-
-        }
-      }else{//need to move this user to offload because he is suspended
-        u.setOrgUnitPath("/Offboard");
-        try{
-          service.users().update(u.getPrimaryEmail(),u).execute();
-        }catch(Exception e){
-          logs.append(e);
-          logs.append("\r\n");
-        }
+      try{
+        checkForChangeInOrg(u,oldOrgTable);
+      }catch(Exception e){
+        logs.append(Helper.exceptionToString(e));
       }
     }
     try{
@@ -162,88 +395,61 @@ public class OrgMovementDetector
     }
 
   }
-  private void userFoundWorkflow(String newOrgName, User u, Table oldOrgTable)
-  {
-    String oldOrgName = null;
-    try{
-      oldOrgName = Helper.orgPathToName(oldOrgTable.get(u.getPrimaryEmail(),"org"));
-    }catch(IllegalArgumentException e){
-      oldOrgName = "{could not find in old org table: "+ u.getPrimaryEmail() + "}";
-    }
-
-    if(!newOrgName.equals(oldOrgName)){
-      StringBuilder toSend = new StringBuilder();
-      SignatureBuilder sb = dataMap.get(u.getPrimaryEmail());
-      OrgUnitDescription oldOrg = orgMap.get(oldOrgName);
-      OrgUnitDescription newOrg = orgMap.get(newOrgName);
-      if(sb == null){
-        logs.append( "could not find data on user "+u.getPrimaryEmail()+" when checking for orgunit change, will not update local info");
-        logs.append("\r\n");
-
-
-      }else if(oldOrg == null){
-
-        if(Strings.BlackList.contains(oldOrgName)){
-          if(newOrg == null){
-            logs.append( "could not find data on from G-Suite new orgunit "+newOrgName+" when checking for orgunit change, will not update local info");
-            logs.append("\r\n");
-          }
-          else{
-            toSend.append(sb.get("name")+ " "+u.getPrimaryEmail()+"\n");
-            toSend.append("Came from blacklisted orgUnit "+oldOrgName+"\n");
-            toSend.append("Fax on new org: "+newOrg.get("fax"));
-          }
-        }
-        else{
-          logs.append( "could not find data from G-Suite on old orgunit "+oldOrgName+" when checking for orgunit change, will not update local info");
-          logs.append("\r\n");
-        }
-
-      }else if(newOrg == null){
-        logs.append( "could not find data on from G-Suite new orgunit "+newOrgName+" when checking for orgunit change, will not update local info");
-        logs.append("\r\n");
-
-      }else{
-        toSend.append(sb.get("name")+ " "+u.getPrimaryEmail()+"\n");
-        toSend.append("Fax on account: "+sb.get("work_fax")+"\n");
-        toSend.append("Fax on old org: "+oldOrg.get("fax")+"\n");
-        toSend.append("Fax on new org: "+newOrg.get("fax"));
-        //todo make sure after testing that it actually does send to the correct ppl
-        try{
-          serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"ORGCHANGE for "+ u.getPrimaryEmail()+" from "+ oldOrgName + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
-        }catch(Exception e){
-          logs.append(Helper.exceptionToString(e));
-          logs.append("\r\n");
-        }
-        String title = oldOrgTable.get(u.getPrimaryEmail(),"title");
-        removeTitleGroup(u,title,oldOrgName);
-        try{
-          title = UserFunctions.getTitle(u);
-          addTitleGroup(u,title);
-        }catch(NullPointerException e){
-          addTitleGroup(u,"");
-        }catch(IllegalArgumentException e){
-          logs.append(Helper.exceptionToString(e));
-        }catch(Exception e){
-          logs.append(Helper.exceptionToString(e));
-        }
-
-        //add to title and org groups
-
-        //group management
-        oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),Helper.orgPathToName(u.getOrgUnitPath()),oldOrgTable.get(u.getPrimaryEmail(),"title")});
-      }
-    }else{
-      //only need to check changes to title
-      titleGroupChanger(u, oldOrgTable);
-    }
-
-  }
-
-  private void newUserWorkflow(User u,String newOrgName,Table oldOrgTable)
+  private void sendEmailOnOrgChange(User u, String oldOrgName) throws IOException
   {
     StringBuilder toSend = new StringBuilder();
     SignatureBuilder sb = dataMap.get(u.getPrimaryEmail());
+    OrgUnitDescription oldOrg = orgMap.get(oldOrgName);
+    String newOrgName = Helper.orgPathToName(u.getOrgUnitPath());
+    OrgUnitDescription newOrg = orgMap.get(newOrgName);
+    if(sb == null){
+      logs.append( "could not find data on user "+u.getPrimaryEmail()+" when checking for orgunit change, will not update local info");
+      logs.append("\r\n");
+
+
+    }else if(oldOrg == null){
+
+      if(Strings.BlackList.contains(oldOrgName)){
+        if(newOrg == null){
+          logs.append( "could not find data on from G-Suite new orgunit "+newOrgName+" when checking for orgunit change, will not update local info");
+          logs.append("\r\n");
+        }
+        else{
+          toSend.append(sb.get("name")+ " "+u.getPrimaryEmail()+"\n");
+          toSend.append("Came from blacklisted orgUnit "+oldOrgName+"\n");
+          toSend.append("Fax on new org: "+newOrg.get("fax"));
+        }
+      }
+      else{
+        logs.append( "could not find data from G-Suite on old orgunit "+oldOrgName+" when checking for orgunit change, will not update local info");
+        logs.append("\r\n");
+      }
+
+    }else if(newOrg == null){
+      logs.append( "could not find data on from G-Suite new orgunit "+newOrgName+" when checking for orgunit change, will not update local info");
+      logs.append("\r\n");
+
+    }else{
+      toSend.append(sb.get("name")+ " "+u.getPrimaryEmail()+"\n");
+      toSend.append("Fax on account: "+sb.get("work_fax")+"\n");
+      toSend.append("Fax on old org: "+oldOrg.get("fax")+"\n");
+      toSend.append("Fax on new org: "+newOrg.get("fax"));
+      //todo make sure after testing that it actually does send to the correct ppl
+      try{
+        serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"ORGCHANGE for "+ u.getPrimaryEmail()+" from "+ oldOrgName + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
+      }catch(Exception e){
+        logs.append(Helper.exceptionToString(e));
+        logs.append("\r\n");
+      }
+    }
+  }
+
+
+  private void sendEmailOnNewUser(User u) throws IOException
+  {
+    StringBuilder toSend = new StringBuilder();
+    SignatureBuilder sb = dataMap.get(u.getPrimaryEmail());
+    String newOrgName = Helper.orgPathToName(u.getOrgUnitPath());
     OrgUnitDescription newOrg = orgMap.get(newOrgName);
     if(sb == null){
       logs.append( "could not find data on user "+u.getPrimaryEmail()+" when checking for orgunit change, will not update local info");
@@ -261,18 +467,7 @@ public class OrgMovementDetector
       toSend.append("Fax on new org: "+newOrg.get("fax"));
       //todo make sure after testing that it actually does send to the correct ppl
 
-      String title = "";
-      try{
-        title = UserFunctions.getTitle(u);
-      }catch(Exception e){
-        logs.append(Helper.exceptionToString(e));
-      }
-      String newGroup = Helper.orgUnitToStaffGroupEmail(newOrgName);
 
-      //add to title and org groups
-      if(title == null) title = "";
-      oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),Helper.orgPathToName(u.getOrgUnitPath()),title});
-      addTitleGroup(u,title);
       try{
         serviceManager.sendEmail(Strings.jesse_email,Strings.jesse_email,"ORGCHANGE for new user: "+ u.getPrimaryEmail() + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
       }catch(Exception e){

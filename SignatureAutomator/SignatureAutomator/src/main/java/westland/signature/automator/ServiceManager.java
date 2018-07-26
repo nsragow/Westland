@@ -273,6 +273,10 @@ public class ServiceManager
     }
     return userList;
   }
+  public void refreshUsers()
+  {
+    userList = getUserList(null,null);
+  }
   public Set<User> getUserSetBlackRemoved()
   {
     if(userList == null){

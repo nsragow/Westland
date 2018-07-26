@@ -126,6 +126,7 @@ public class Main
     Strings.tomer_email = STRINGS.get("tomer_email","val");
     Strings.itCC = new String[]{Strings.tomer_email,Strings.abe_email,Strings.noah_email};
     Strings.workingDirectory = Main.workingDirectory;
+    Strings.officeSpaceAPIkey = STRINGS.get("officeSpaceAPIkey","val");
 
   }
   /**
@@ -141,6 +142,7 @@ public class Main
     PATHS = Initializer.getTable(workingDirectory+"/src/main/resources/Paths.csv");
     FILE_IDS = Initializer.getTable(workingDirectory+"/src/main/resources/drive_file_id.csv");
     STRINGS = Initializer.getTable(workingDirectory+"/src/main/resources/Strings.csv");
+
     stringInit();
     serviceManager = new ServiceManager(Strings.main_account_it,Strings.SERVICE_ACCOUNT_PKCS12_FILE_PATH,Strings.SERVICE_ACCOUNT_EMAIL);
     try{
@@ -165,28 +167,18 @@ public class Main
       throw new RuntimeException();
     }
   }
-  private static void fullRun()
+  protected static void fullRun()
   {
 
 
 
-    Directory service = null;
-    Gmail gmail = null;
-    try{
-      service = serviceManager.getDirectory();
 
 
-
-    }
-    catch(Exception e){
-      emailOrErr(e);
-      exit(1);
-    }
     StringBuilder logs = new StringBuilder();
     DataCollector dataCollector = null;
     try{
 
-      dataCollector = new DataCollector(service,logs);
+      dataCollector = new DataCollector(serviceManager,logs);
     }catch(FatalException e){
       emailOrErr(e);
       exit(1);
@@ -195,6 +187,19 @@ public class Main
       emailOrLog(new RuntimeException(logs.toString()));
     }
 
+    try{
+      OrgMovementDetector orgDetector = new OrgMovementDetector(dataCollector.getUsers(),dataCollector.getDataMap(),dataCollector.getOrgMap(),serviceManager);
+      orgDetector.checkForChangeInOrg();
+
+
+
+
+    }catch(LogException e){
+      emailOrLog(e);
+    }//tempz
+    catch(Exception e){
+
+    }
     Map<String,SignatureBuilder> dataMap = dataCollector.getDataMap();
     SignatureUpdater sU = new SignatureUpdater(dataMap,serviceManager);
     try{
@@ -210,22 +215,9 @@ public class Main
       emailOrErr(e);
       exit(1);
     }
-    OrgMovementDetector orgDetector = new OrgMovementDetector(dataCollector.getUsers(),dataCollector.getDataMap(),dataCollector.getOrgMap(),serviceManager);
-    try{
-      orgDetector.checkForChangeInOrg();
-
-
-
-
-    }catch(LogException e){
-      emailOrLog(e);
-    }//tempz
-    catch(Exception e){
-
-    }
   }
 
-  private static void liveSheetRun()
+  protected static void liveSheetRun()
   {
     LiveSheet ls = new LiveSheet(serviceManager);
     try{
@@ -239,7 +231,7 @@ public class Main
       exit(1);
     }
   }
-  private static void runTest() throws Exception
+  private static void runInterface() throws Exception
   {
 
     new CommandInterface(serviceManager);
@@ -247,95 +239,17 @@ public class Main
 
 
   }
-  private static void printUserData() throws Exception
+
+  //todo, this should be a non static class for this to have a healthy relationship with the interface
+  protected static void orgCheck()
   {
+    serviceManager.refreshUsers();
 
-    //todo not good at checking for exceptions
-
-    //Directory service = null;
-    //service = serviceManager.getDirectory();
-
-
-
-
-
-    Directory service = null;
-    Gmail gmail = null;
-    try{
-      service = serviceManager.getDirectory();
-
-
-
-    }
-    catch(Exception e){
-      throw new RuntimeException(e);
-      //emailOrErr(e);
-      //exit(1);
-    }
-    DataCollector dataCollector = null;
-    try{
-
-      dataCollector = new DataCollector(service,new StringBuilder());
-    }catch(FatalException e){
-      throw new RuntimeException(e);
-      //emailOrErr(e);
-      //exit(1);
-    }
-
-    Table table = new Table(new String[]{"First","Last","Email","Org","Title","Ext"});
-    for(User u : dataCollector.getUsers()){
-      if(!u.getSuspended()){
-
-        String first = u.getName().getGivenName();
-        String last = u.getName().getFamilyName();
-        String email = u.getPrimaryEmail();
-        String org = Helper.orgPathToName(u.getOrgUnitPath());
-        String title;
-        try{
-          title = UserFunctions.getTitle(u);
-        }catch(Exception e){
-          System.out.println(email);
-          title = "";
-        }
-        String ext = UserFunctions.getExt(u);
-
-
-
-        table.addRow(new String[]{first,last,email,org,title,ext});
-      }
-
-    }
-    Table.writeTableToCSV(table,"./userData.csv");
-
-
-
-
-
-
-  }
-  private static void orgCheck()
-  {
-
-
-
-    Directory service = null;
-    Gmail gmail = null;
-    try{
-      service = serviceManager.getDirectory();
-
-
-
-    }
-    catch(Exception e){
-
-      emailOrErr(e);
-      exit(1);
-    }
     StringBuilder logs = new StringBuilder();
     DataCollector dataCollector = null;
     try{
 
-      dataCollector = new DataCollector(service,logs);
+      dataCollector = new DataCollector(serviceManager,logs);
     }catch(FatalException e){
       emailOrErr(e);
       exit(1);
@@ -344,8 +258,8 @@ public class Main
       emailOrLog(new RuntimeException(logs.toString()));
     }
 
-    OrgMovementDetector orgDetector = new OrgMovementDetector(dataCollector.getUsers(),dataCollector.getDataMap(),dataCollector.getOrgMap(),serviceManager);
     try{
+      OrgMovementDetector orgDetector = new OrgMovementDetector(dataCollector.getUsers(),dataCollector.getDataMap(),dataCollector.getOrgMap(),serviceManager);
       orgDetector.checkForChangeInOrg();
     }catch(LogException e){
       emailOrLog(e);
@@ -355,14 +269,17 @@ public class Main
 
   }
   //args must have workingdirectory as first arg and it must end without a /
-  public static void main(String[] args)
+  public static void main(String[] args) throws Exception
   {
+
+
+    //System.exit(0);
     String option = null;
     workingDirectory = args[0];
     if(args.length > 1){
-      option = args[1];
+      option = args[1].toLowerCase();
     }else{
-      option = "-all";
+      option = "-interface";
     }
 
     reports = new Reports();
@@ -373,7 +290,9 @@ public class Main
       reports.err(Helper.exceptionToString(e));
       exit(1);
     }
-
+    OfficeSpaceConnection os = new OfficeSpaceConnection();
+    os.download();
+    System.exit(0);
     switch(option){
       case "-all":
         try{
@@ -393,19 +312,9 @@ public class Main
       case "-livesheet":
         liveSheetRun();
         break;
-      case "-server":
-        runServer();
-        break;
-      case "-printuserdata":
+      case "-interface":
         try{
-          printUserData();
-        }catch(Exception e){
-          e.printStackTrace();
-        }
-        break;
-      case "-test":
-        try{
-          runTest();
+          runInterface();
         }catch(Exception e){
 
           throw new RuntimeException(e);

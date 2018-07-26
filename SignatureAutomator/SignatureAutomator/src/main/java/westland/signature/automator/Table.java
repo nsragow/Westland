@@ -26,6 +26,10 @@ public class Table
     writer.close();
 
   }
+  public void remove(String userName)
+  {
+    rows.remove(userName);
+  }
   //makes assumption that data is not null or empty
   public Table(String[] originalHeader)
   {
@@ -61,7 +65,7 @@ public class Table
         index = i;
       }
     }
-    if(index == -1){
+    if(index == -1 || rows.get(key).length<=index){
       return null;
     }else{
       return rows.get(key)[index];

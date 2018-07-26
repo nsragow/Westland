@@ -19,7 +19,6 @@ public class CSVReader
       parser = CSVFormat.EXCEL.parse(new BufferedReader(new FileReader(fileName)));
 
       List<CSVRecord> records = parser.getRecords();
-
       table = new Table(recordToArray(records.get(0)));
       for(int i = 1; i < records.size(); i++){
         table.addRow(recordToArray(records.get(i)));

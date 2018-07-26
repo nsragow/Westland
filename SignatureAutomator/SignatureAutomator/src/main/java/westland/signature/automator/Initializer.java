@@ -31,8 +31,16 @@ public class Initializer
       String fileid = fileInfo.get(key,"id");
       String type = fileInfo.get(key,"export_type");
       String fileToOverwrite = paths.get(key,"val");
+      boolean tryAgain = true;
+      while(tryAgain){
+        try{
+          drive.files().export(fileid,type).executeMediaAndDownloadTo(new FileOutputStream(workingDirectory+fileToOverwrite));
+          tryAgain = false;
+        }catch(java.net.SocketTimeoutException e){
+          tryAgain = true;
+        }
 
-      drive.files().export(fileid,type).executeMediaAndDownloadTo(new FileOutputStream(workingDirectory+fileToOverwrite));
+      }
     }
   }
 }
