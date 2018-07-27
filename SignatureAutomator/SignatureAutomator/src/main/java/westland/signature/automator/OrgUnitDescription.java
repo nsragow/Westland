@@ -21,6 +21,7 @@ public class OrgUnitDescription
       allowedKeys.add("phone");
       allowedKeys.add("area");
       allowedKeys.add("region");
+      allowedKeys.add("pretty_string");
 
     }
   }

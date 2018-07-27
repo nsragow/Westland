@@ -37,6 +37,22 @@ public class GroupWrapper
     }
     return false;
   }
+  public void createAreaGroup(String name) throws IOException
+  {
+    createGroup(Helper.areaToGroupEmail(name),name + " Area","Area managers of "+name,MANAGEMENT);
+  }
+  public void createManagementGroup(String name) throws IOException
+  {
+    createGroup(Helper.orgUnitToManagerGroupEmail(name),name + " Management","Managers of "+name,MANAGEMENT);
+  }
+  public void createStaffGroup(String name) throws IOException
+  {
+    createGroup(Helper.orgUnitToStaffGroupEmail(name),name + " Staff","Staff of "+name,STAFF);
+  }
+  public void createRegionGroup(String name) throws IOException
+  {
+    createGroup(Helper.regionToGroupEmail(name),name + " Region","Area managers of "+name,MANAGEMENT);
+  }
   private void makeNewStaffGroup(String groupKey, String name, String description) throws IOException
   {
     Group g = new Group();

@@ -45,9 +45,9 @@ public class Helper
   {
     return regionName.replace(" ","") + "region@westlandreg.com";
   }
-  public static int waitOnOption(String[] options)
+  public static int waitOnOption(String[] options, Scanner sc)
   {
-    Scanner sc = new Scanner(System.in);
+    
     while(true){
       String line = sc.nextLine();
       line = line.toLowerCase().trim();

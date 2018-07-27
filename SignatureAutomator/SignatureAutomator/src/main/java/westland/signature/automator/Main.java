@@ -19,6 +19,7 @@ import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.gmail.model.Draft;
 import com.google.api.services.gmail.model.Message;
 
+import java.util.TreeMap;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.FileList;
@@ -68,6 +69,81 @@ import org.apache.commons.codec.binary.Base64;
 
 public class Main
 {//clean this up todo make non static
+  //args must have workingdirectory as first arg and it must end without a /
+  public static void main(String[] args) throws Exception
+  {
+
+
+    //System.exit(0);
+    String option = null;
+    workingDirectory = args[0];
+    if(args.length > 1){
+      option = args[1].toLowerCase();
+      if(args.length > 2){
+        TreeMap<String,String> options = new TreeMap<>();
+        for(int i = 2; i < args.length; i++){
+          String[] pair = args[i].substring(1).toLowerCase().split("=");
+          try{
+            options.put(pair[0],pair[1]);
+          }catch(ArrayIndexOutOfBoundsException e){
+            System.out.println("bad command line option " + args[i]);
+          }
+        }
+        if(options.containsKey("sysin")){
+          try{
+            System.setIn(new java.io.FileInputStream(options.get("sysin")));
+          }catch(IOException e){
+            System.out.println("failed to set sysin to "+options.get("sysin"));
+          }
+        }
+      }
+    }else{
+      option = "-interface";
+    }
+
+    reports = new Reports();
+    try{
+
+      initilize();
+    }catch(Exception e){
+      reports.err(Helper.exceptionToString(e));
+      exit(1);
+    }
+    OfficeSpaceConnection os = new OfficeSpaceConnection();
+    os.download();
+    System.exit(0);
+    switch(option){
+      case "-all":
+      try{
+        fullRun();
+      }catch(Exception e){
+
+        reports.err(Helper.exceptionToString(e));
+      }
+      break;
+      case "-shortcheck":
+      liveSheetRun();
+      orgCheck();
+      break;
+      case "-orgcheck":
+      orgCheck();
+      break;
+      case "-livesheet":
+      liveSheetRun();
+      break;
+      case "-interface":
+      try{
+        runInterface();
+      }catch(Exception e){
+
+        throw new RuntimeException(e);
+      }
+      break;
+      default:
+      reports.err("Improper commandline argument: " + option+ "\n");
+    }
+    exit(0);
+  }
 
   static String[] itCC = null;
   static Table STRINGS=null;
@@ -267,63 +343,6 @@ public class Main
 
     }
 
-  }
-  //args must have workingdirectory as first arg and it must end without a /
-  public static void main(String[] args) throws Exception
-  {
-
-
-    //System.exit(0);
-    String option = null;
-    workingDirectory = args[0];
-    if(args.length > 1){
-      option = args[1].toLowerCase();
-    }else{
-      option = "-interface";
-    }
-
-    reports = new Reports();
-    try{
-
-      initilize();
-    }catch(Exception e){
-      reports.err(Helper.exceptionToString(e));
-      exit(1);
-    }
-    OfficeSpaceConnection os = new OfficeSpaceConnection();
-    os.download();
-    System.exit(0);
-    switch(option){
-      case "-all":
-        try{
-          fullRun();
-        }catch(Exception e){
-
-          reports.err(Helper.exceptionToString(e));
-        }
-        break;
-      case "-shortcheck":
-        liveSheetRun();
-        orgCheck();
-        break;
-      case "-orgcheck":
-        orgCheck();
-        break;
-      case "-livesheet":
-        liveSheetRun();
-        break;
-      case "-interface":
-        try{
-          runInterface();
-        }catch(Exception e){
-
-          throw new RuntimeException(e);
-        }
-        break;
-      default:
-        reports.err("Improper commandline argument: " + option+ "\n");
-    }
-    exit(0);
   }
   private static void runServer()
   {

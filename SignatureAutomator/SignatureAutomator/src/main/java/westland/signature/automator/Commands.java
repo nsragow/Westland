@@ -16,11 +16,13 @@ public class Commands
 
   private ServiceManager serviceManager;
   private GroupWrapper gW;
+  private Scanner sc;
 
-  public Commands(ServiceManager serviceManager)
+  public Commands(ServiceManager serviceManager, Scanner sc)
   {
     this.serviceManager = serviceManager;
     gW = new GroupWrapper(serviceManager);
+    this.sc = sc;
   }
   public void printUserData(String pathToPrint)
   {
@@ -54,10 +56,10 @@ public class Commands
       }catch(Exception e){
         System.out.println(e);
         System.out.println("Hit the above exception when trying to write to CSV. Change path? Otherwise the operation will be aborted. (Y/N)");
-        if(0==Helper.waitOnOption(new String[]{"Y","N"})){
+        if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
           again = true;
           System.out.println("Enter the path to csv. ex/ /home/joe/documents/userdata.csv");
-          pathToPrint = new Scanner(System.in).nextLine();
+          pathToPrint = sc.nextLine();
         }
       }
     }while(again);
@@ -110,7 +112,7 @@ public class Commands
     }catch(IOException e){
       e.printStackTrace();
       System.out.println("The above exception was caught when trying to collect users from Google. Try again? (Y/N)");
-      if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+      if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
         printUserInfo(formattedString,fields);
       }
       return;
@@ -138,7 +140,7 @@ public class Commands
       }catch(IOException e){
         System.out.println("Hit the following exception when collecting orgunits. Do you want to try again? (Y/N)");
         e.printStackTrace();
-        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+        if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
           return editOrgTags(orgUnit,tags);
         }else{
           return false;
@@ -155,7 +157,7 @@ public class Commands
       }catch(Exception e){
         System.out.println("Hit the following exception when finding orgunit "+ orgUnit+". Do you want to try again? (Y/N)");
         e.printStackTrace();
-        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+        if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
           return editOrgTags(orgUnit,tags);
         }else{
           return false;
@@ -182,7 +184,7 @@ public class Commands
       }catch(Exception e){
         System.out.println("Hit the following exception when editing orgunit "+ o.getName()+". Do you want to try again? (Y/N)");
         e.printStackTrace();
-        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+        if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
           return editOrgTags(orgUnit,tags);
         }else{
           return false;
@@ -199,7 +201,7 @@ public class Commands
       }catch(IOException e){
         System.out.println("Hit the following exception when collecting orgunits. Do you want to try again? (Y/N)");
         e.printStackTrace();
-        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+        if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
           return printOrgInfo(orgUnit,tags);
         }else{
           return false;
@@ -217,7 +219,7 @@ public class Commands
         System.out.println("Hit the following exception when finding orgunit "+ orgUnit+". Do you want to try again? (Y/N)");
         e.printStackTrace();
 
-        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+        if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
           return printOrgInfo(orgUnit,tags);
         }else{
           return false;
@@ -253,7 +255,7 @@ public class Commands
       }catch(IOException e){
         System.out.println("Hit the following exception when collecting users. Do you want to try again? (Y/N)");
         e.printStackTrace();
-        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+        if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
           return makeGroupMembers(userDef,orgDef,groupDef);
         }else{
           return false;
@@ -286,7 +288,7 @@ public class Commands
       return gW.addEmailToGroup(u.getPrimaryEmail(),groupKey);
     }catch(IOException e){
       System.out.println("Hit the following exception when adding "+u.getPrimaryEmail()+ " to " + groupKey + ". Do you want to try again? (Y/N)");
-      if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+      if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
         return makeUserMember(u,groupKey);
       }else{
         return false;
@@ -300,7 +302,7 @@ public class Commands
         gW.addEmailToGroup(u.getPrimaryEmail(),groupKey);
       }catch(IOException e){
         System.out.println("Hit the following exception when adding "+u.getPrimaryEmail()+ " to " + groupKey + ". Do you want to try again? (Y/N)");
-        if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+        if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
           makeUserMember(u,groupKey);
         }
       }
@@ -411,7 +413,7 @@ public class Commands
 
   private boolean waitOnYesOrNo()
   {
-    Scanner sc = new Scanner(System.in);
+
     while(true){
       String line = sc.nextLine();
       line = line.toLowerCase().trim();

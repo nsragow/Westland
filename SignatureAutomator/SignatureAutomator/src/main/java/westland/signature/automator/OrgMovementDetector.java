@@ -178,14 +178,26 @@ public class OrgMovementDetector
     switch(titleID){
       case AREA_MANAGER:
         if(area!=null){
+          if(!gW.hasGroup(Helper.areaToGroupEmail(area))){
+            gW.createAreaGroup(area);
+          }
           gW.addEmailToGroup(userName, Helper.areaToGroupEmail(area));
         }
         if(region!=null){
+          if(!gW.hasGroup(Helper.regionToGroupEmail(region))){
+            gW.createRegionGroup(region);
+          }
           gW.addEmailToGroup(userName, Helper.regionToGroupEmail(region));
         }
       case MANAGER:
+        if(!gW.hasGroup(Helper.orgUnitToManagerGroupEmail(org))){
+          gW.createManagementGroup(org);
+        }
         gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(org));
       case STAFF:
+        if(!gW.hasGroup(Helper.orgUnitToStaffGroupEmail(org))){
+          gW.createStaffGroup(org);
+        }
         gW.addEmailToGroup(userName, Helper.orgUnitToStaffGroupEmail(org));
         break;
       default:
@@ -217,12 +229,21 @@ public class OrgMovementDetector
     switch(titleID){
       case AREA_MANAGER:
         if(area!=null){
+          if(!gW.hasGroup(Helper.areaToGroupEmail(area))){
+            gW.createAreaGroup(area);
+          }
           gW.addEmailToGroup(userName, Helper.areaToGroupEmail(area));
         }
         if(region!=null){
+          if(!gW.hasGroup(Helper.regionToGroupEmail(region))){
+            gW.createRegionGroup(region);
+          }
           gW.addEmailToGroup(userName, Helper.regionToGroupEmail(region));
         }
       case MANAGER:
+        if(!gW.hasGroup(Helper.orgUnitToManagerGroupEmail(org))){
+          gW.createManagementGroup(org);
+        }
         gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(org));
       case STAFF:
         break;

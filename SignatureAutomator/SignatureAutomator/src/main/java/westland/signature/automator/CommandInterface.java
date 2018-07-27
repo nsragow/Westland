@@ -8,7 +8,7 @@ public class CommandInterface
   private Commands com;
   private Scanner sc;
   private Main main;
-  private static final String welcomeMessage = "Welcome to Bandle's commandline interface\ntry \"help\" or \"quit\"";
+  private static final String welcomeMessage = "Welcome to Bandle's commandline interface\n";
   private static final String notSupported = "currently not supported";
   private static final String[] commands = new String[]{
     "exit - leave program",
@@ -28,13 +28,17 @@ public class CommandInterface
 
   public CommandInterface(ServiceManager serviceManager)
   {
-    com = new Commands(serviceManager);
     sc = new Scanner(System.in);
+    com = new Commands(serviceManager,sc);
     run();
   }
   private void run()
   {
     System.out.println(welcomeMessage);
+    System.out.println("Commands:");
+    for(String s : commands){
+      System.out.println(s);
+    }
     while(true){
       switch(sc.nextLine().toLowerCase().trim()){
         case "quit":
@@ -72,7 +76,7 @@ public class CommandInterface
           break;
         case "orgcheck":
           System.out.println("Are you sure? This may take a few minutes. (Y/N)");
-          if(0==Helper.waitOnOption(new String[]{"Y","N"})){
+          if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
             System.out.println("executing");
             Main.orgCheck();
             System.out.println("done");
@@ -80,7 +84,7 @@ public class CommandInterface
           break;
         case "shortcheck":
           System.out.println("Are you sure? This may take a few minutes. (Y/N)");
-          if(0==Helper.waitOnOption(new String[]{"Y","N"})){
+          if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
             System.out.println("executing livesheet");
             Main.liveSheetRun();
             System.out.println("executing orgcheck");
@@ -90,7 +94,7 @@ public class CommandInterface
           break;
         case "livesheet":
           System.out.println("Are you sure? This may take a few minutes. (Y/N)");
-          if(0==Helper.waitOnOption(new String[]{"Y","N"})){
+          if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
             System.out.println("executing");
             Main.liveSheetRun();
             System.out.println("done");
@@ -98,7 +102,7 @@ public class CommandInterface
           break;
         case "fullrun":
           System.out.println("Are you sure? This may take a long time. (Y/N)");
-          if(0==Helper.waitOnOption(new String[]{"Y","N"})){
+          if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
             System.out.println("executing");
             Main.fullRun();
             System.out.println("done");
@@ -114,7 +118,7 @@ public class CommandInterface
   private void addCommand()
   {
     System.out.println("Adding to Group or OrgUnit?");
-    switch(Helper.waitOnOption(new String[]{"Group","OrgUnit","Quit"})){
+    switch(Helper.waitOnOption(new String[]{"Group","OrgUnit","Quit"},sc)){
       case 0:
         addToGroupCommand();
         break;
@@ -132,7 +136,7 @@ public class CommandInterface
   private void editCommand()
   {
     System.out.println("Edit to OrgUnit, Group, or User? (OrgUnit/Group/User)");
-    switch(Helper.waitOnOption(new String[]{"OrgUnit","Group","User","Quit"})){
+    switch(Helper.waitOnOption(new String[]{"OrgUnit","Group","User","Quit"},sc)){
       case 0:
         orgUnitEditCommand();
         break;
@@ -154,7 +158,7 @@ public class CommandInterface
   private void printCommand()
   {
     System.out.println("Print info on OrgUnits, Groups, or Users? (OrgUnit/Group/User/UserToCSV)");
-    switch(Helper.waitOnOption(new String[]{"OrgUnit","Group","User","Quit","UserToCSV"})){
+    switch(Helper.waitOnOption(new String[]{"OrgUnit","Group","User","Quit","UserToCSV"},sc)){
       case 0:
         orgUnitPrintCommand();
         break;
@@ -172,7 +176,7 @@ public class CommandInterface
         System.out.println("Enter the path to csv. ex/ /home/joe/documents/userdata.csv");
         String path = sc.nextLine();
         System.out.println("Is this correct? "+ path);
-        if(0==Helper.waitOnOption(new String[]{"Y","N"})){
+        if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
           System.out.println("executing...");
           com.printUserData(path);
           System.out.println("done");
@@ -193,7 +197,7 @@ public class CommandInterface
     System.out.println("Org Unit: " + orgunit);
     System.out.println("Tag: " + tag);
     System.out.println("(Y/N)");
-    if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+    if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
       System.out.println("executing...");
       String[] splitOrgs = orgunit.split(",");
       String[] splitTags = tag.split(",");
@@ -207,7 +211,7 @@ public class CommandInterface
       System.out.println("done");
     }else{
       System.out.println("Do you want to start over? (Y/N)");
-      if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+      if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
         orgUnitEditCommand();
       }
     }
@@ -222,7 +226,7 @@ public class CommandInterface
     System.out.println("User: " + user);
     System.out.println("Field: " + info);
     System.out.println("(Y/N)");
-    if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+    if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
       System.out.println("executing...");
 
       String[] splitTags = info.split(",");
@@ -232,7 +236,7 @@ public class CommandInterface
       System.out.println("done");
     }else{
       System.out.println("Do you want to start over? (Y/N)");
-      if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+      if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
         userPrintCommand();
       }
     }
@@ -247,7 +251,7 @@ public class CommandInterface
     System.out.println("Org Unit: " + orgunit);
     System.out.println("Field: " + info);
     System.out.println("(Y/N)");
-    if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+    if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
       System.out.println("executing...");
       String[] splitOrgs = orgunit.split(",");
       String[] splitTags = info.split(",");
@@ -261,7 +265,7 @@ public class CommandInterface
       System.out.println("done");
     }else{
       System.out.println("Do you want to start over? (Y/N)");
-      if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+      if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
         orgUnitPrintCommand();
       }
     }
@@ -280,14 +284,14 @@ public class CommandInterface
     System.out.println("Org Unit: " + orgunit);
     System.out.println("Group: " + group);
     System.out.println("(Y/N)");
-    if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+    if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
       System.out.println("executing...");
 
       com.makeGroupMembers(email,orgunit,group);
       System.out.println("done");
     }else{
       System.out.println("Do you want to start over? (Y/N)");
-      if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+      if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
         addToGroupCommand();
       }
     }
@@ -296,7 +300,7 @@ public class CommandInterface
   private void createCommand()
   {
     System.out.println("Create what? (User/Group/OrgUnit)");
-    switch(Helper.waitOnOption(new String[]{"User","Group","OrgUnit","Quit"})){
+    switch(Helper.waitOnOption(new String[]{"User","Group","OrgUnit","Quit"},sc)){
       case 0:
         System.out.println(notSupported);
         break;
@@ -322,7 +326,7 @@ public class CommandInterface
     System.out.println("Enter description");
     String desc = sc.nextLine();
     System.out.println("Enter schema (Staff/Management)");
-    int type = Helper.waitOnOption(new String[]{"Staff","Management"});
+    int type = Helper.waitOnOption(new String[]{"Staff","Management"},sc);
     String schema;
     switch(type){
       case 0: schema = "Staff"; break;
@@ -335,14 +339,14 @@ public class CommandInterface
     System.out.println("Description: " + desc);
     System.out.println("Schema: " + schema);
     System.out.println("(Y/N)");
-    if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+    if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
       System.out.println("executing...");
 
       com.createGroup(email,name,desc,type,Commands.APPLY_BLACKLIST);
       System.out.println("done");
     }else{
       System.out.println("Do you want to start over? (Y/N)");
-      if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+      if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
         createGroupCommand();
       }
     }
@@ -351,7 +355,7 @@ public class CommandInterface
   private void massCreateCommand()
   {
     System.out.println("Create what? (User/Group/OrgUnit)");
-    switch(Helper.waitOnOption(new String[]{"User","Group","OrgUnit","Quit"})){
+    switch(Helper.waitOnOption(new String[]{"User","Group","OrgUnit","Quit"},sc)){
       case 0:
         System.out.println(notSupported);
         break;
@@ -371,7 +375,7 @@ public class CommandInterface
   private void massDeleteCommand()
   {
     System.out.println("Delete what? (User/Group/OrgUnit)");
-    switch(Helper.waitOnOption(new String[]{"User","Group","OrgUnit","Quit"})){
+    switch(Helper.waitOnOption(new String[]{"User","Group","OrgUnit","Quit"},sc)){
       case 0:
         System.out.println(notSupported);
         break;
@@ -397,7 +401,7 @@ public class CommandInterface
     System.out.println("Enter formatted description");
     String desc = sc.nextLine();
     System.out.println("Enter schema (Staff/Management)");
-    int type = Helper.waitOnOption(new String[]{"Staff","Management"});
+    int type = Helper.waitOnOption(new String[]{"Staff","Management"},sc);
     String schema;
     switch(type){
       case 0: schema = "Staff"; break;
@@ -410,14 +414,14 @@ public class CommandInterface
     System.out.println("Description: " + desc);
     System.out.println("Schema: " + schema);
     System.out.println("(Y/N)");
-    if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+    if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
       System.out.println("executing...");
 
       com.massGroupCreator(email,name,desc,type,Commands.APPLY_BLACKLIST);
       System.out.println("done");
     }else{
       System.out.println("Do you want to start over? (Y/N)");
-      if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+      if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
         massCreateGroupCommand();
       }
     }
@@ -431,14 +435,14 @@ public class CommandInterface
     System.out.println("Are you satisfied with this setup?");
     System.out.println("Email: " + email);
     System.out.println("(Y/N)");
-    if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+    if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
       System.out.println("executing...");
       com.massGroupDeleter(email,Commands.APPLY_BLACKLIST);
       System.out.println("done");
 
     }else{
       System.out.println("Do you want to start over? (Y/N)");
-      if(Helper.waitOnOption(new String[]{"Y","N"})==0){
+      if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
         massDeleteGroupCommand();
       }
     }
