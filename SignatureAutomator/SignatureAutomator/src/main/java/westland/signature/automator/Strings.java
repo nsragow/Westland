@@ -19,6 +19,7 @@ public class Strings
   static  String black_list;
   static  String roll_out;
   static  String current_user_orgs;
+  static  String ext_to_orgunit;
   static  String log_file;
   static  String SERVICE_ACCOUNT_EMAIL;
   static  String abe_email;

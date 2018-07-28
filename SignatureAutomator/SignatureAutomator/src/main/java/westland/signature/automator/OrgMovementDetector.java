@@ -254,6 +254,9 @@ public class OrgMovementDetector
 
   public void checkForChangeInOrg(User u, Table oldOrgTable)
   {
+
+
+
     boolean oldValid = false;
     boolean newValid = false;
     int status = movementStatus(u,oldOrgTable);
@@ -368,7 +371,23 @@ public class OrgMovementDetector
   {//todo!, now we must make sure that things are called in order, not sure but threads may affect this
 
 
-
+    //first check office space and update accordingly
+    Set<User> users = serviceManager.getUserSetBlackRemoved();
+    Map<String,String> orgChanges = new OfficeSpaceConnection().getDifference(users);
+    boolean refreshNeeded = false;
+    for(User u : users){
+      if(orgChanges.containsKey(u.getPrimaryEmail().toLowerCase())){
+        u.setOrgUnitPath("/"+orgChanges.get(u.getPrimaryEmail().toLowerCase()));
+        try{
+          //service.users().update(u.getPrimaryEmail(),u).execute();
+          System.out.println("did not update user");
+        }catch(Exception e){
+          logs.append(Helper.exceptionToString(e));
+          refreshNeeded = true;
+        }
+      }
+    }
+    if(refreshNeeded)serviceManager.refreshUsers();
 
 
     Table oldOrgTable = Initializer.getTable(Strings.current_user_orgs);

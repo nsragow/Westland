@@ -109,9 +109,6 @@ public class Main
       reports.err(Helper.exceptionToString(e));
       exit(1);
     }
-    OfficeSpaceConnection os = new OfficeSpaceConnection();
-    os.download();
-    System.exit(0);
     switch(option){
       case "-all":
       try{
@@ -193,6 +190,7 @@ public class Main
     Strings.black_list = workingDirectory+PATHS.get("black_list","val");
     Strings.roll_out = workingDirectory+PATHS.get("roll_out","val");
     Strings.current_user_orgs = workingDirectory+PATHS.get("current_user_orgs","val");
+    Strings.ext_to_orgunit = workingDirectory+PATHS.get("extension_orgunit_mapping","val");
     Strings.log_file = workingDirectory+PATHS.get("log_file","val");
     Strings.SERVICE_ACCOUNT_EMAIL = STRINGS.get("service_account","val");
     Strings.abe_email = STRINGS.get("abe_email","val");

@@ -1,17 +1,25 @@
 package westland.signature.automator;
 
-import java.util.List;
+import java.util.*;
 
 public class OfficeSpaceFloor
 {
   private long id;
   private String label;
-  private List<Long> directories;
+  private Map<Long,OfficeSpaceSeat> seatMap;
 
-  public OfficeSpaceFloor(long id, String label, List<Long> directories)
+  public OfficeSpaceFloor(long id, String label)
   {
+    seatMap = new HashMap<>();
     this.id = id;
     this.label = label;
-    this.directories = directories;
+  }
+  public long getId()
+  {
+    return id;
+  }
+  public void addSeat(OfficeSpaceSeat seat)
+  {
+    seatMap.put(seat.getId(),seat);
   }
 }

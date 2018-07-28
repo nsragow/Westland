@@ -7,18 +7,18 @@ public class OfficeSpaceEmployee
   private long id;
   private String email;
   private String seated;
-  private List<Long> seatIDs;
+  private OfficeSpaceSeat seat;
 
-  public OfficeSpaceEmployee(long id, String email, String seated, List<Long> seatIDs)
+  public OfficeSpaceEmployee(long id, String email, String seated, OfficeSpaceSeat seat)
   {
     this.id = id;
     this.email = email;
     this.seated = seated;
-    this.seatIDs = seatIDs;
+    this.seat = seat;
   }
-  public List<Long> getSeats()
+  public OfficeSpaceSeat getSeat()
   {
-    return seatIDs;
+    return seat;
   }
   public String getEmail()
   {
@@ -32,10 +32,8 @@ public class OfficeSpaceEmployee
     sb.append("id: "+ id);
     sb.append('\n');
     sb.append("seated "+seated);
-    for(Long i : seatIDs){
-      sb.append('\n');
-      sb.append("seat id: "+i);
-    }
+    sb.append('\n');
+    sb.append(seat.toString());
     return sb.toString();
   }
 }

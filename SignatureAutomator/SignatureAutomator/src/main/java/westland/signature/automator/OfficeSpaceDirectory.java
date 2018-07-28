@@ -1,6 +1,6 @@
 package westland.signature.automator;
 
-import java.util.List;
+import java.util.*;
 
 public class OfficeSpaceDirectory
 {
@@ -13,5 +13,17 @@ public class OfficeSpaceDirectory
     this.id = id;
     floors = new HashMap<>();
     this.name = name;
+  }
+  public void addFloor(OfficeSpaceFloor floor)
+  {
+    floors.put(floor.getId(),floor);
+  }
+  public long getId()
+  {
+    return id;
+  }
+  public OfficeSpaceFloor get(long id)
+  {
+    return floors.get(id);
   }
 }
