@@ -85,6 +85,7 @@ public class OrgMovementDetector
   private ServiceManager serviceManager;
   private Directory service;
   private Table orgToGroup;
+  private OfficeSpaceConnection officeSpace;
   private GroupWrapper gW;
   public OrgMovementDetector(Set<User> users, Map<String,SignatureBuilder> dataMap, Map<String,OrgUnitDescription> orgMap, ServiceManager serviceManager) throws IOException
   {
@@ -98,6 +99,7 @@ public class OrgMovementDetector
     CSVReader csvread = new CSVReader(Strings.workingDirectory+"/src/main/resources/companynames.csv");
     orgToGroup = csvread.getTable();
     gW = new GroupWrapper(serviceManager);
+    officeSpace = new OfficeSpaceConnection();
   }
   private int titleToID(String title)
   {
@@ -128,6 +130,9 @@ public class OrgMovementDetector
     }
 
     if(!oldInfo.get(u.getPrimaryEmail(),"org").trim().toLowerCase().equals(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().trim())){
+      return FULL_CHANGE;
+    }
+    if(Long.parseLong(oldInfo.get(u.getPrimaryEmail(),"ext")) != Long.parseLong(UserFunctions.getExt(u))){
       return FULL_CHANGE;
     }
     //at this point we know the orgs are the same
@@ -254,9 +259,6 @@ public class OrgMovementDetector
 
   public void checkForChangeInOrg(User u, Table oldOrgTable)
   {
-
-
-
     boolean oldValid = false;
     boolean newValid = false;
     int status = movementStatus(u,oldOrgTable);
@@ -264,6 +266,8 @@ public class OrgMovementDetector
     String area;
     String region;
     String title;
+    int ext;
+    int oldExt;
     if(orgMap.containsKey(org)){
       OrgUnitDescription desc = orgMap.get(org);
       area = desc.get("area");
@@ -276,12 +280,19 @@ public class OrgMovementDetector
     }catch(Exception e){
       title = "";
     }
+    try{
+      ext = Integer.parseInt(UserFunctions.getExt(u));
+    }catch(Exception e){
+      ext = -1;
+    }
     String oldOrg;
     if(oldOrgTable.containsKey(u.getPrimaryEmail())){
       oldOrg = oldOrgTable.get(u.getPrimaryEmail(),"org");
+      oldExt = Integer.parseInt(oldOrgTable.get(u.getPrimaryEmail(),"ext"));
     }else{
       oldOrg = null;
       oldValid = false;
+      oldExt = -1;
     }
     String oldArea;
     String oldRegion;
@@ -317,7 +328,8 @@ public class OrgMovementDetector
         try{
           removeFromTitleGroups(u.getPrimaryEmail(),oldTitle,oldOrg,oldArea,oldRegion);
           addToTitleGroups(u.getPrimaryEmail(),title,org,area,region);
-          oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title});
+          oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
+          //todo officeSpace.changeUserTitle()
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
           logs.append("\r\n");
@@ -331,8 +343,9 @@ public class OrgMovementDetector
         try{
           removeFromAllGroups(u.getPrimaryEmail(),oldTitle,oldOrg,oldArea,oldRegion);
           addToAllGroups(u.getPrimaryEmail(),title,org,area,region);
-          sendEmailOnOrgChange(u,oldOrg);
-          oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title});
+          sendEmailOnOrgChange(u,oldOrg,oldExt);
+          oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
+          //todo officeSpace.changeUserTitle()
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
           logs.append("\r\n");
@@ -356,7 +369,7 @@ public class OrgMovementDetector
         try{
           addToAllGroups(u.getPrimaryEmail(),title,org,area,region);
           sendEmailOnNewUser(u);
-          oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title});
+          oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
           logs.append("\r\n");
@@ -373,12 +386,14 @@ public class OrgMovementDetector
 
     //first check office space and update accordingly
     Set<User> users = serviceManager.getUserSetBlackRemoved();
-    Map<String,String> orgChanges = new OfficeSpaceConnection().getDifference(users);
+    Map<String,OfficeSpaceConnection.ChangeDetail> orgChanges = officeSpace.getDifference(users);
     boolean refreshNeeded = false;
     for(User u : users){
       if(orgChanges.containsKey(u.getPrimaryEmail().toLowerCase())){
-        u.setOrgUnitPath("/"+orgChanges.get(u.getPrimaryEmail().toLowerCase()));
+        u.setOrgUnitPath("/"+orgChanges.get(u.getPrimaryEmail().toLowerCase()).getOrg());
+        UserFunctions.setExt(u,(int)orgChanges.get(u.getPrimaryEmail().toLowerCase()).getExt());
         try{
+          //todo activate this
           //service.users().update(u.getPrimaryEmail(),u).execute();
           System.out.println("did not update user");
         }catch(Exception e){
@@ -435,7 +450,7 @@ public class OrgMovementDetector
     }
 
   }
-  private void sendEmailOnOrgChange(User u, String oldOrgName) throws IOException
+  private void sendEmailOnOrgChange(User u, String oldOrgName, Integer oldExt) throws IOException
   {
     StringBuilder toSend = new StringBuilder();
     SignatureBuilder sb = dataMap.get(u.getPrimaryEmail());
@@ -473,10 +488,12 @@ public class OrgMovementDetector
       toSend.append(sb.get("name")+ " "+u.getPrimaryEmail()+"\n");
       toSend.append("Fax on account: "+sb.get("work_fax")+"\n");
       toSend.append("Fax on old org: "+oldOrg.get("fax")+"\n");
-      toSend.append("Fax on new org: "+newOrg.get("fax"));
+      toSend.append("Fax on new org: "+newOrg.get("fax")+"\n");
+      toSend.append("Old ext: "+oldExt+"\n");
+      toSend.append("New ext: "+UserFunctions.getExt(u)+"\n");
       //todo make sure after testing that it actually does send to the correct ppl
       try{
-        serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"ORGCHANGE for "+ u.getPrimaryEmail()+" from "+ oldOrgName + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
+        serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"CHANGE_DETECTED for "+ u.getPrimaryEmail()+" from "+ oldOrgName + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
       }catch(Exception e){
         logs.append(Helper.exceptionToString(e));
         logs.append("\r\n");
@@ -504,12 +521,14 @@ public class OrgMovementDetector
       toSend.append(sb.get("name")+ " "+u.getPrimaryEmail()+"\n");
       toSend.append("Fax on account: "+sb.get("work_fax")+"\n");
 
-      toSend.append("Fax on new org: "+newOrg.get("fax"));
+      toSend.append("Fax on org: "+newOrg.get("fax")+"\n");
+      toSend.append("Ext on account: "+UserFunctions.getExt(u)+"\n");
+
       //todo make sure after testing that it actually does send to the correct ppl
 
 
       try{
-        serviceManager.sendEmail(Strings.jesse_email,Strings.jesse_email,"ORGCHANGE for new user: "+ u.getPrimaryEmail() + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
+        serviceManager.sendEmail(Strings.jesse_email,Strings.jesse_email,"ONBOARD for user: "+ u.getPrimaryEmail() + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
       }catch(Exception e){
         logs.append(Helper.exceptionToString(e));
         logs.append("\r\n");

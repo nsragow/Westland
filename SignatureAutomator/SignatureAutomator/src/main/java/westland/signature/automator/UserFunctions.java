@@ -35,4 +35,23 @@ public class UserFunctions
 
 
   }
+  public static void setExt(User user, int ext)
+  {
+    Map<String,Map<String,Object>> cs = user.getCustomSchemas();
+    if(cs!=null){
+      Map<String,Object> addInfo = cs.get("Additional_Info");
+      if(addInfo!=null){
+        addInfo.put("Extension",ext);
+
+      }else{
+        throw new LogException("could not set ext for " + user.getPrimaryEmail() + " because Additional Info was not found");
+      }
+    }else{
+      cs = new HashMap<String,Map<String,Object>>();
+      Map<String,Object> toAdd = new HashMap<String,Object>();
+      toAdd.put("Extension",ext);
+      cs.put("Additional_Info",toAdd);
+    }
+    user.setCustomSchemas(cs);
+  }
 }

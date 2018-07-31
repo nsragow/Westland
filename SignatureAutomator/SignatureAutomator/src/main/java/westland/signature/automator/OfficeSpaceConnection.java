@@ -16,35 +16,71 @@ public class OfficeSpaceConnection
 {
   private Map<Long, OfficeSpaceSeat> seatMap;
   private List<OfficeSpaceEmployee> employeeList;
-  private Map<String,String> emailToOrgMap;
+  private Map<String,ChangeDetail> emailToDetail;
   private StringBuilder log;
 
   //private static final String MAIN_DIRECTORY = "SYS: Make Public";
-  private static final String MAIN_DIRECTORY = "SYS: Make Private";
+  private static final String MAIN_DIRECTORY = "SYS: Make Private"; //todo
   private OfficeSpaceDirectory dir;
   public OfficeSpaceConnection()
   {
     System.setProperty(ClientBuilder.JAXRS_DEFAULT_CLIENT_BUILDER_PROPERTY, "org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder");
-    emailToOrgMap = new HashMap<>();
+    emailToDetail = new HashMap<>();
     seatMap = new HashMap<>();
     employeeList = new LinkedList<>();
     log = new StringBuilder();
     download();
   }
-  public Map<String,String> getDifference(Collection<User> users)
+  public void changeUserTitle(String id, String title)
   {
-    HashMap<String,String> emailToNewOrg = new HashMap<String,String>();
+    Client client = ClientBuilder.newClient();
+    Entity<String> payload = Entity.text("{\"response\": {\"title\": "+title+"}}");
+
+
+    Response response = client.target("https://westland.officespacesoftware.com")
+    .path("/api/1/employees/"+id)
+    .request(MediaType.TEXT_PLAIN_TYPE)
+    .header("Content-Type", "application/json; charset=utf-8")
+    .header("AUTHORIZATION", "Token token=\""+Strings.officeSpaceAPIkey+"\"")
+    .put(payload);
+
+    System.out.println("status: " + response.getStatus());
+    System.out.println("headers: " + response.getHeaders());
+    System.out.println("body:" + response.readEntity(String.class));
+  }
+  public Map<String,ChangeDetail> getDifference(Collection<User> users)
+  {
+    HashMap<String,ChangeDetail> emailToNewOrg = new HashMap<>();
     for(User u : users){
-      if(emailToOrgMap.containsKey(u.getPrimaryEmail().toLowerCase())){
-        if(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().equals(emailToOrgMap.get(u.getPrimaryEmail().toLowerCase()).toLowerCase())){
+      if(emailToDetail.containsKey(u.getPrimaryEmail().toLowerCase())){
+        //see if both org and ext are the same
+        if(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().equals(emailToDetail.get(u.getPrimaryEmail().toLowerCase()).org.toLowerCase()) && Long.parseLong(UserFunctions.getExt(u)) == emailToDetail.get(u.getPrimaryEmail().toLowerCase()).ext){
           System.out.println("they are the same");
         }else{
           System.out.println("different for "+ u.getPrimaryEmail());
-          emailToNewOrg.put(u.getPrimaryEmail(),emailToOrgMap.get(u.getPrimaryEmail().toLowerCase()));
+          emailToNewOrg.put(u.getPrimaryEmail(),emailToDetail.get(u.getPrimaryEmail().toLowerCase()));
         }
       }
     }
     return emailToNewOrg;
+  }
+  public class ChangeDetail
+  {
+    String org;
+    long ext;
+    public ChangeDetail(String org, long ext)
+    {
+      this.org = org;
+      this.ext = ext;
+    }
+    public String getOrg()
+    {
+      return org;
+    }
+    public long getExt()
+    {
+      return ext;
+    }
   }
   private void parseEmployees(String json)
   {
@@ -166,7 +202,7 @@ public class OfficeSpaceConnection
     ExtensionMapper extMapper = new ExtensionMapper();
     for(OfficeSpaceEmployee e : employeeList){
       try{
-        emailToOrgMap.put(e.getEmail(),extMapper.getOrg(Integer.parseInt(e.getSeat().getLabel())));
+        emailToDetail.put(e.getEmail(),new ChangeDetail(extMapper.getOrg(Integer.parseInt(e.getSeat().getLabel())), Long.parseLong(e.getSeat().getLabel())));
       }catch(Exception excep){
         log.append(Helper.exceptionToString(excep));
       }
