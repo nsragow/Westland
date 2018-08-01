@@ -3,14 +3,20 @@ package westland.signature.automator;
 import com.google.api.services.admin.directory.model.User;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.MediaType;
 import org.jboss.resteasy.client.jaxrs.*;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.*;
 import java.util.*;
+import java.net.URL;
+import java.io.*;
+import javax.net.ssl.HttpsURLConnection;
+
 
 public class OfficeSpaceConnection
 {
@@ -33,20 +39,22 @@ public class OfficeSpaceConnection
   }
   public void changeUserTitle(String id, String title)
   {
+    Entity<String> payload = Entity.json("{\"record\":{\"title\":\""+title+"\"}}");
     Client client = ClientBuilder.newClient();
-    Entity<String> payload = Entity.text("{\"response\": {\"title\": "+title+"}}");
-
-
-    Response response = client.target("https://westland.officespacesoftware.com")
+    System.out.println("Encoding: "+payload.getEncoding());
+    System.out.println("Entity: " + payload.getEntity() );
+    System.out.println("ToString: "+ payload);
+    Invocation.Builder builder = client.target("https://westland.officespacesoftware.com")
     .path("/api/1/employees/"+id)
-    .request(MediaType.TEXT_PLAIN_TYPE)
-    .header("Content-Type", "application/json; charset=utf-8")
-    .header("AUTHORIZATION", "Token token=\""+Strings.officeSpaceAPIkey+"\"")
-    .put(payload);
+    .request(MediaType.APPLICATION_JSON).header("Content-Type", "application/json; charset=utf-8")
+    .header("AUTHORIZATION", "Token token=\""+Strings.officeSpaceAPIkey+"\"");
+    try{
+      Response response = builder.put(payload);
+    }catch(Exception e){
+      throw new LogException(Helper.exceptionToString(e));
+    }
 
-    System.out.println("status: " + response.getStatus());
-    System.out.println("headers: " + response.getHeaders());
-    System.out.println("body:" + response.readEntity(String.class));
+
   }
   public Map<String,ChangeDetail> getDifference(Collection<User> users)
   {
@@ -187,6 +195,7 @@ public class OfficeSpaceConnection
     .header("Content-Type", "application/json; charset=utf-8")
     .header("AUTHORIZATION", "Token token=\""+Strings.officeSpaceAPIkey+"\"")
     .get();
+    //System.out.println(employeeResponse.readEntity(String.class));
 
     Response responseFloors = client.target("https://westland.officespacesoftware.com")
     .path("/api/1/floors")

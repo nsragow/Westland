@@ -90,7 +90,14 @@ public class LiveSheet
     String title = line[TITLE];
     String fax = line[FAX];
     String cell = line[CELL];
-    User user = serviceManager.getUser(email);
+
+    User user;
+    try{
+      user = serviceManager.getUser(email);
+
+    }catch(Exception e){
+      throw new LogException(Helper.exceptionToString(e));
+    }
 
     if(!lastName.isEmpty()){
       if(lastName.toLowerCase().equals(CLEAR_COMMAND)){

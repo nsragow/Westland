@@ -85,7 +85,12 @@ public class SignatureUpdater
 
   public void updateSignature(String email) throws IOException
   {
-    if(!dataMap.get(email).isComplete()){
+    email = email.toLowerCase();
+    SignatureBuilder sb = dataMap.get(email);
+    if(sb == null){
+      System.out.println(email);
+    }
+    if(!dataMap.get(email.toLowerCase()).isComplete()){
       logs.append(email + " does not have sufficient information on their user+orgunit to create proper signature - signature not created\n");
     }else{
       //System.out.println("updated sig for "+email);

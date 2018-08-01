@@ -1,5 +1,5 @@
 package westland.signature.automator;
-
+import java.util.Collection;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.services.admin.directory.model.Channel;
 import com.google.api.services.admin.directory.model.User;
@@ -78,7 +78,7 @@ public class OrgMovementDetector
 
 
 
-  private Set<User> users;
+  private Collection<User> users;
   private Map<String,SignatureBuilder> dataMap;
   private Map<String,OrgUnitDescription> orgMap;
   private StringBuilder logs;
@@ -100,6 +100,50 @@ public class OrgMovementDetector
     orgToGroup = csvread.getTable();
     gW = new GroupWrapper(serviceManager);
     officeSpace = new OfficeSpaceConnection();
+  }
+  public void checkForChangeInOrg()
+  {//todo!, now we must make sure that things are called in order, not sure but threads may affect this
+
+
+    //first check office space and update accordingly
+    Collection<User> users = serviceManager.getUserSetBlackRemoved();
+    Map<String,OfficeSpaceConnection.ChangeDetail> orgChanges = officeSpace.getDifference(users);
+    boolean refreshNeeded = false;
+    for(User u : users){
+      if(orgChanges.containsKey(u.getPrimaryEmail().toLowerCase())){
+        u.setOrgUnitPath("/"+orgChanges.get(u.getPrimaryEmail().toLowerCase()).getOrg());
+        UserFunctions.setExt(u,(int)orgChanges.get(u.getPrimaryEmail().toLowerCase()).getExt());
+        try{
+          //todo activate this
+          //service.users().update(u.getPrimaryEmail(),u).execute();
+          System.out.println("did not update user");
+        }catch(Exception e){
+          logs.append(Helper.exceptionToString(e));
+          refreshNeeded = true;
+        }
+      }
+    }
+    if(refreshNeeded)serviceManager.refreshUsers();
+
+
+    Table oldOrgTable = Initializer.getTable(Strings.current_user_orgs);
+
+    for(User u : users){
+      try{
+        checkForChangeInOrg(u,oldOrgTable);
+      }catch(Exception e){
+        logs.append(Helper.exceptionToString(e));
+      }
+    }
+    try{
+      Table.writeTableToCSV(oldOrgTable,Strings.current_user_orgs);
+
+    }catch(Exception e){
+      logs.append("could not update org to user matching\r\n"+Helper.exceptionToString(e));
+    }
+    if(logs.length() != 0){
+      throw new LogException(logs.toString());
+    }
   }
   private int titleToID(String title)
   {
@@ -132,7 +176,33 @@ public class OrgMovementDetector
     if(!oldInfo.get(u.getPrimaryEmail(),"org").trim().toLowerCase().equals(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().trim())){
       return FULL_CHANGE;
     }
-    if(Long.parseLong(oldInfo.get(u.getPrimaryEmail(),"ext")) != Long.parseLong(UserFunctions.getExt(u))){
+    String oldExt = oldInfo.get(u.getPrimaryEmail(),"ext");
+    String newExt;
+    try{
+      newExt = UserFunctions.getExt(u);
+    }catch(Exception e){
+      newExt = "-1";
+    }
+    //initialize null titles
+    if(newExt == null){
+      newExt = "-1";
+    }
+    if(oldExt == null){
+      oldExt = "-1";
+    }
+    long oldExtVal;
+    long newExtVal;
+    try{
+      oldExtVal = Long.parseLong(oldExt);
+    }catch(NumberFormatException e){
+      oldExtVal = -1;
+    }
+    try{
+      newExtVal = Long.parseLong(newExt);
+    }catch(NumberFormatException e){
+      newExtVal = -1;
+    }
+    if(oldExtVal != newExtVal){
       return FULL_CHANGE;
     }
     //at this point we know the orgs are the same
@@ -288,7 +358,11 @@ public class OrgMovementDetector
     String oldOrg;
     if(oldOrgTable.containsKey(u.getPrimaryEmail())){
       oldOrg = oldOrgTable.get(u.getPrimaryEmail(),"org");
-      oldExt = Integer.parseInt(oldOrgTable.get(u.getPrimaryEmail(),"ext"));
+      try{
+        oldExt = Integer.parseInt(oldOrgTable.get(u.getPrimaryEmail(),"ext"));
+      }catch(NumberFormatException e){
+        oldExt = -1;
+      }
     }else{
       oldOrg = null;
       oldValid = false;
@@ -378,50 +452,6 @@ public class OrgMovementDetector
 
       default:
       throw new RuntimeException("Unexpected Error");
-    }
-  }
-  public void checkForChangeInOrg()
-  {//todo!, now we must make sure that things are called in order, not sure but threads may affect this
-
-
-    //first check office space and update accordingly
-    Set<User> users = serviceManager.getUserSetBlackRemoved();
-    Map<String,OfficeSpaceConnection.ChangeDetail> orgChanges = officeSpace.getDifference(users);
-    boolean refreshNeeded = false;
-    for(User u : users){
-      if(orgChanges.containsKey(u.getPrimaryEmail().toLowerCase())){
-        u.setOrgUnitPath("/"+orgChanges.get(u.getPrimaryEmail().toLowerCase()).getOrg());
-        UserFunctions.setExt(u,(int)orgChanges.get(u.getPrimaryEmail().toLowerCase()).getExt());
-        try{
-          //todo activate this
-          //service.users().update(u.getPrimaryEmail(),u).execute();
-          System.out.println("did not update user");
-        }catch(Exception e){
-          logs.append(Helper.exceptionToString(e));
-          refreshNeeded = true;
-        }
-      }
-    }
-    if(refreshNeeded)serviceManager.refreshUsers();
-
-
-    Table oldOrgTable = Initializer.getTable(Strings.current_user_orgs);
-
-    for(User u : users){
-      try{
-        checkForChangeInOrg(u,oldOrgTable);
-      }catch(Exception e){
-        logs.append(Helper.exceptionToString(e));
-      }
-    }
-    try{
-      Table.writeTableToCSV(oldOrgTable,Strings.current_user_orgs);
-
-    }catch(Exception e){
-      logs.append("could not update org to user matching\r\n"+Helper.exceptionToString(e));
-    }
-    if(logs.length() != 0){
-      throw new LogException(logs.toString());
     }
   }
   private void titleAndOrgToGroup(User u, String newOrgName)

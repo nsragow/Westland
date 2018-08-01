@@ -64,9 +64,9 @@ public class Commands
       }
     }while(again);
   }
-  public Set<User> formattedUserStringToSet(String userString) throws IOException
+  public Collection<User> formattedUserStringToSet(String userString) throws IOException
   {
-    Set<User> users;
+    Collection<User> users;
     userString = userString.toLowerCase();
     users = serviceManager.getUserSetBlackRemoved();
     if(userString.contains("*")){
@@ -106,7 +106,7 @@ public class Commands
   public void printUserInfo(String formattedString, String[] fields)
   {
 
-    Set<User> users;
+    Collection<User> users;
     try{
       users = formattedUserStringToSet(formattedString);
     }catch(IOException e){
@@ -249,7 +249,7 @@ public class Commands
   {
 
     if(userDef.trim().contains("*")){
-      Set<User> users;
+      Collection<User> users;
       try{
         users = formattedUserStringToSet(userDef);
       }catch(IOException e){

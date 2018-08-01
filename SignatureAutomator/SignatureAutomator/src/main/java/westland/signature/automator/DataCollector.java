@@ -1,5 +1,6 @@
 package westland.signature.automator;
 
+import java.util.Collection;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.services.admin.directory.model.Channel;
 import com.google.api.services.admin.directory.model.User;
@@ -99,7 +100,7 @@ public class DataCollector
   private void setUpDataMap(String token)
   {
     dataMap = new HashMap<>();
-    Set<User> userSet = serviceManager.getUserSetBlackRemoved();
+    Collection<User> userSet = serviceManager.getUserSetBlackRemoved();
     for(User u : userSet){
       this.users.add(u);
       dataMap.put(u.getPrimaryEmail(),new SignatureBuilder(u));
@@ -157,7 +158,7 @@ public class DataCollector
     //rule: abe dont display fax and dont use main number
     if(dataMap.containsKey(Strings.abe_email)){
       dataMap.get(Strings.abe_email).remove("work_fax");
-      dataMap.get(Strings.abe_email).remove("work");
+      //dataMap.get(Strings.abe_email).remove("work");
     }
     //rule: Change org names so that they display company name instead
     CSVReader csvread = new CSVReader(Strings.workingDirectory+"/src/main/resources/companynames.csv");

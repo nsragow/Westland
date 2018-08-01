@@ -76,7 +76,11 @@ public class Main
 
     //System.exit(0);
     String option = null;
-    workingDirectory = args[0];
+    if(args.length == 0){
+      workingDirectory = ".";
+    }else{
+      workingDirectory = args[0];
+    }
     if(args.length > 1){
       option = args[1].toLowerCase();
       if(args.length > 2){
@@ -110,7 +114,7 @@ public class Main
       exit(1);
     }
     new OfficeSpaceConnection().changeUserTitle("1","cool undo");
-    System.exit(1);
+    //System.exit(0);
     switch(option){
       case "-all":
       try{

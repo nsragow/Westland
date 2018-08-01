@@ -1,5 +1,7 @@
 package westland.signature.automator;
-
+import java.util.Map;
+import java.util.Collection;
+import java.util.HashMap;
 import java.net.SocketTimeoutException;
 import com.google.api.services.admin.directory.model.Users;
 import com.google.api.services.admin.directory.model.User;
@@ -46,7 +48,7 @@ public class ServiceManager
   private List<String> scopes;
   private Directory directory;
   private Groupssettings groupssettings;
-  private Set<User> userList;
+  private Map<String,User> userList;
   private List<OrgUnit> orgList;
   protected ServiceManager(String main_email, String pathToP12, String serviceAccount)
   {
@@ -183,7 +185,10 @@ public class ServiceManager
   }
   public User getUser(String email) throws IOException
   {
-    return getDirectory().users().get(email).setProjection("full").execute();
+    getUserList(); //makes sure userList is not null
+    User toReturn =userList.get(email.toLowerCase());
+    if(toReturn == null) throw new IOException("The user "+email+" does not exist");
+    return toReturn;
   }
   protected Groupssettings getGroupsettings()
   {
@@ -216,6 +221,9 @@ public class ServiceManager
   }
   public void sendEmail(String to, String from, String subject, String bodyText, String[] ccs) throws Exception
   {
+    //todo removeEmailFromGroup
+    System.out.println("not sending email");
+    if(true)return;
     Properties props = new Properties();
     Session session = Session.getDefaultInstance(props, null);
 
@@ -266,31 +274,24 @@ public class ServiceManager
     .execute();
 
   }
-  public Set<User> getUserList()
+  public Collection<User> getUserList()
   {
     if(userList == null){
       userList = getUserList(null,null);
     }
-    return userList;
+
+    return userList.values();
   }
   public void refreshUsers()
   {
     userList = null;
   }
-  public Set<User> getUserSetBlackRemoved()
+  public Collection<User> getUserSetBlackRemoved()
   {
-    if(userList == null){
-      userList = getUserList(null,null);
-    }
-    HashSet<User> toReturn = new HashSet<>();
-    for(User u : userList){
-      if(!Strings.BlackList.contains(u.getPrimaryEmail())&&!Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
-        toReturn.add(u);
-      }
-    }
-    return toReturn;
+
+    return getUserList();
   }
-  private Set<User> getUserList(String token, Set<User> results)
+  private Map<String,User> getUserList(String token, Set<User> results)
   {
     Set<User> users;
     if(results != null){
@@ -307,7 +308,14 @@ public class ServiceManager
         users.addAll(userobj.getUsers());
 
       }while(token!=null);
-      return users;
+      Map<String,User> userMap = new HashMap<>();
+
+      for(User u : users){
+        if(!Strings.BlackList.contains(u.getPrimaryEmail())&&!Strings.BlackList.contains(Helper.orgPathToName(u.getOrgUnitPath()))){
+          userMap.put(u.getPrimaryEmail().toLowerCase(),u);
+        }
+      }
+      return userMap;
     }catch(SocketTimeoutException e){
       return getUserList(token, users);
     }catch(IOException e){
