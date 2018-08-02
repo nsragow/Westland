@@ -160,32 +160,5 @@ public class DataCollector
       dataMap.get(Strings.abe_email).remove("work_fax");
       //dataMap.get(Strings.abe_email).remove("work");
     }
-    //rule: Change org names so that they display company name instead
-    CSVReader csvread = new CSVReader(Strings.workingDirectory+"/src/main/resources/companynames.csv");
-    Table table = csvread.getTable();
-    if(table == null){
-      throw new FatalException("FATAL: Was unable to get company names for orgs in specialRules(), exiting to prevent poor data collection...");
-    }
-    for(SignatureBuilder sb : dataMap.values()){
-      String org = sb.get("org");
-      if(org == null){
-        logs.append("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature\n");
-        sb.put("org","");
-      }else if(!Strings.BlackList.contains(org)){
-
-        String newOrg = table.get(org,"company");
-        if(newOrg == null){
-          sb.put("org","");
-          logs.append("org company name not found for "+sb.get("email")+sb.get("org")+", removing company name from signature\n");
-        }else{
-          sb.put("org",newOrg);
-        }
-      }else{
-        logs.append("org company name blacklisted for "+sb.get("email")+", "+sb.get("org")+", removing company name from signature\n");
-        sb.put("org","");
-      }
-
-    }
-
   }
 }

@@ -183,6 +183,7 @@ public class CommandInterface
         }else{
           System.out.println("returning to main menu");
         }
+        break;
       default:
         throw new RuntimeException("Unexpected Error");
     }

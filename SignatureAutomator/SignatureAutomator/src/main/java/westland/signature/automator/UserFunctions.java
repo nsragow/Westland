@@ -35,6 +35,19 @@ public class UserFunctions
 
 
   }
+  public static String getFirstName(User u)
+  {
+    return u.getName().getGivenName();
+  }
+  public static void setName(User u, String firstName, String lastName)
+  {
+    u.getName().setGivenName(firstName);
+    u.getName().setFamilyName(lastName);
+  }
+  public static String getLastName(User u)
+  {
+    return u.getName().getFamilyName();
+  }
   public static void setExt(User user, int ext)
   {
     Map<String,Map<String,Object>> cs = user.getCustomSchemas();

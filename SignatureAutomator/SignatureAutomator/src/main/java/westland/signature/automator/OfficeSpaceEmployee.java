@@ -7,14 +7,30 @@ public class OfficeSpaceEmployee
   private long id;
   private String email;
   private String seated;
+  private String firstName;
+  private String lastName;
   private OfficeSpaceSeat seat;
 
-  public OfficeSpaceEmployee(long id, String email, String seated, OfficeSpaceSeat seat)
+  public OfficeSpaceEmployee(long id, String email, String seated, OfficeSpaceSeat seat, String firstName, String lastName)
   {
+    this.firstName = firstName;
+    this.lastName = lastName;
     this.id = id;
     this.email = email;
     this.seated = seated;
     this.seat = seat;
+  }
+  public String getFirstName()
+  {
+    return firstName;
+  }
+  public long getId()
+  {
+    return id;
+  }
+  public String getLastName()
+  {
+    return lastName;
   }
   public OfficeSpaceSeat getSeat()
   {

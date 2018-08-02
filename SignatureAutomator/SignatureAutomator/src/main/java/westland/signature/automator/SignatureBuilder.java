@@ -284,6 +284,11 @@ public class SignatureBuilder
     if(oud.contains("website")){
       this.put("website",oud.get("website"));
     }
+    if(oud.contains("pretty_string")){
+      this.put("org",oud.get("pretty_string"));
+    }else{
+      this.put("org","");
+    }
   }
   public void setPhone(Object phoneObj) throws IllegalArgumentException
   {

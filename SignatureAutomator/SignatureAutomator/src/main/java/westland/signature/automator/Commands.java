@@ -44,7 +44,7 @@ public class Commands
 
 
 
-        table.addRow(new String[]{first,last,email,org,title,ext});
+        table.addRow(new String[]{email,first,last,org,title,ext});
       }
 
     }

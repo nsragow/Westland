@@ -113,7 +113,7 @@ public class Main
       reports.err(Helper.exceptionToString(e));
       exit(1);
     }
-    new OfficeSpaceConnection().changeUserTitle("1","cool undo");
+    //new OfficeSpaceConnection().changeUserTitle("1","cool undo");
     //System.exit(0);
     switch(option){
       case "-all":

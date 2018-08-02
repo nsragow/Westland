@@ -21,24 +21,35 @@ import javax.net.ssl.HttpsURLConnection;
 public class OfficeSpaceConnection
 {
   private Map<Long, OfficeSpaceSeat> seatMap;
+  private Set<String> availableExt;
   private List<OfficeSpaceEmployee> employeeList;
+  private Map<String,OfficeSpaceEmployee> employeeMap;
   private Map<String,ChangeDetail> emailToDetail;
   private StringBuilder log;
 
   //private static final String MAIN_DIRECTORY = "SYS: Make Public";
   private static final String MAIN_DIRECTORY = "SYS: Make Private"; //todo
   private OfficeSpaceDirectory dir;
+  private ExtensionMapper extMapper;
   public OfficeSpaceConnection()
   {
     System.setProperty(ClientBuilder.JAXRS_DEFAULT_CLIENT_BUILDER_PROPERTY, "org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder");
     emailToDetail = new HashMap<>();
+    availableExt = new HashSet<>();
+    employeeMap = new HashMap<>();
+    extMapper = new ExtensionMapper();
     seatMap = new HashMap<>();
     employeeList = new LinkedList<>();
     log = new StringBuilder();
     download();
   }
-  public void changeUserTitle(String id, String title)
+  public void changeUserTitle(String email, String title)
   {
+    String id = ""+employeeMap.get(email.toLowerCase()).getId();
+    if(id == null){
+      throw new LogException("could not find OfficeSpaceID for email "+ email);
+    }
+
     Entity<String> payload = Entity.json("{\"record\":{\"title\":\""+title+"\"}}");
     Client client = ClientBuilder.newClient();
     System.out.println("Encoding: "+payload.getEncoding());
@@ -56,16 +67,50 @@ public class OfficeSpaceConnection
 
 
   }
+  public void createUser(String seatLabel, String firstName, String lastName, String title)
+  {
+    if(true){
+      System.out.println("basdfkasdfsjfsdf");
+      System.exit(1); //Todo
+    }
+    String id = ""+employeeMap.get(email.toLowerCase()).getId();
+    if(id == null){
+      throw new LogException("could not find OfficeSpaceID for email "+ email);
+    }
+
+    Entity<String> payload = Entity.json("{\"record\":{\"title\":\""+title+"\"}}");
+    Client client = ClientBuilder.newClient();
+    System.out.println("Encoding: "+payload.getEncoding());
+    System.out.println("Entity: " + payload.getEntity() );
+    System.out.println("ToString: "+ payload);
+    Invocation.Builder builder = client.target("https://westland.officespacesoftware.com")
+    .path("/api/1/employees/"+id)
+    .request(MediaType.APPLICATION_JSON).header("Content-Type", "application/json; charset=utf-8")
+    .header("AUTHORIZATION", "Token token=\""+Strings.officeSpaceAPIkey+"\"");
+    try{
+      Response response = builder.put(payload);
+    }catch(Exception e){
+      throw new LogException(Helper.exceptionToString(e));
+    }
+
+
+  }
+  public Collection<String> getOrgsExtensions(String org)
+  {
+    return extMapper.getLabels(org.toLowerCase());
+  }
+  public boolean isLabelAvailable(String ext)
+  {
+    return availableExt.contains(ext.toLowerCase());
+  }
   public Map<String,ChangeDetail> getDifference(Collection<User> users)
   {
     HashMap<String,ChangeDetail> emailToNewOrg = new HashMap<>();
     for(User u : users){
       if(emailToDetail.containsKey(u.getPrimaryEmail().toLowerCase())){
         //see if both org and ext are the same
-        if(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().equals(emailToDetail.get(u.getPrimaryEmail().toLowerCase()).org.toLowerCase()) && Long.parseLong(UserFunctions.getExt(u)) == emailToDetail.get(u.getPrimaryEmail().toLowerCase()).ext){
-          System.out.println("they are the same");
+        if(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().equals(emailToDetail.get(u.getPrimaryEmail().toLowerCase()).org.toLowerCase()) && Long.parseLong(UserFunctions.getExt(u)) == emailToDetail.get(u.getPrimaryEmail().toLowerCase()).ext && UserFunctions.getFirstName(u).toLowerCase().equals(emailToDetail.get(u.getPrimaryEmail().toLowerCase()).firstName.toLowerCase()) && UserFunctions.getLastName(u).toLowerCase().equals(emailToDetail.get(u.getPrimaryEmail().toLowerCase()).lastName.toLowerCase()) ){
         }else{
-          System.out.println("different for "+ u.getPrimaryEmail());
           emailToNewOrg.put(u.getPrimaryEmail(),emailToDetail.get(u.getPrimaryEmail().toLowerCase()));
         }
       }
@@ -76,14 +121,26 @@ public class OfficeSpaceConnection
   {
     String org;
     long ext;
-    public ChangeDetail(String org, long ext)
+    String firstName;
+    String lastName;
+    public ChangeDetail(String org, long ext, String firstName, String lastName)
     {
       this.org = org;
       this.ext = ext;
+      this.firstName = firstName;
+      this.lastName = lastName;
     }
     public String getOrg()
     {
       return org;
+    }
+    public String getFirstName()
+    {
+      return firstName;
+    }
+    public String getLastName()
+    {
+      return lastName;
     }
     public long getExt()
     {
@@ -144,7 +201,7 @@ public class OfficeSpaceConnection
       for(Object o : (JSONArray)seated.get("seat_urls")){
         if(seatMap.containsKey(urlToId((String)o))){
           ids.add(urlToId((String)o));
-          employeeList.add(new OfficeSpaceEmployee((Long)employee.get("id"), (String)employee.get("email"), (String)seated.get("seated"), seatMap.get(urlToId((String)o))));
+          employeeList.add(new OfficeSpaceEmployee((Long)employee.get("id"), (String)employee.get("email"), (String)seated.get("seated"), seatMap.get(urlToId((String)o)), (String)employee.get("first_name"), (String)employee.get("last_name")));
         }
       }
     }
@@ -166,9 +223,13 @@ public class OfficeSpaceConnection
     String val;
     OfficeSpaceFloor floor = dir.get(urlToId((String)seat.get("floor_url")));
     if(floor!=null){
+      JSONObject occupancy = (JSONObject)seat.get("occupancy");
       OfficeSpaceSeat newSeat = new OfficeSpaceSeat((Long)seat.get("id"),(String)seat.get("label"));
       floor.addSeat(newSeat);
       seatMap.put((Long)seat.get("id"),newSeat);
+      if(((String)occupancy.get("occupied")).toLowerCase().equals("occupied")){
+        availableExt.add(((String)seat.get("label")).toLowerCase());
+      }
     }
   }
   public void download()
@@ -208,10 +269,10 @@ public class OfficeSpaceConnection
     parseFloors(responseFloors.readEntity(String.class));
     parseSeats(seatResponse.readEntity(String.class));
     parseEmployees(employeeResponse.readEntity(String.class));
-    ExtensionMapper extMapper = new ExtensionMapper();
     for(OfficeSpaceEmployee e : employeeList){
+      employeeMap.put(e.getEmail().toLowerCase(),e);
       try{
-        emailToDetail.put(e.getEmail(),new ChangeDetail(extMapper.getOrg(Integer.parseInt(e.getSeat().getLabel())), Long.parseLong(e.getSeat().getLabel())));
+        emailToDetail.put(e.getEmail(),new ChangeDetail(extMapper.getOrg(Integer.parseInt(e.getSeat().getLabel())), Long.parseLong(e.getSeat().getLabel()), e.getFirstName(), e.getLastName()));
       }catch(Exception excep){
         log.append(Helper.exceptionToString(excep));
       }

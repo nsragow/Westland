@@ -89,7 +89,6 @@ public class OrgMovementDetector
   private GroupWrapper gW;
   public OrgMovementDetector(Set<User> users, Map<String,SignatureBuilder> dataMap, Map<String,OrgUnitDescription> orgMap, ServiceManager serviceManager) throws IOException
   {
-
     this.users = serviceManager.getUserSetBlackRemoved();
     this.dataMap = dataMap;
     this.orgMap = orgMap;
@@ -109,13 +108,21 @@ public class OrgMovementDetector
     Collection<User> users = serviceManager.getUserSetBlackRemoved();
     Map<String,OfficeSpaceConnection.ChangeDetail> orgChanges = officeSpace.getDifference(users);
     boolean refreshNeeded = false;
-    for(User u : users){
+    for(String uString : orgChanges.keySet()){
+      User u;
+      try{
+        u = serviceManager.getUser(uString);
+      }catch(Exception e){
+        logs.append(Helper.exceptionToString(e));
+        continue;
+      }
       if(orgChanges.containsKey(u.getPrimaryEmail().toLowerCase())){
         u.setOrgUnitPath("/"+orgChanges.get(u.getPrimaryEmail().toLowerCase()).getOrg());
         UserFunctions.setExt(u,(int)orgChanges.get(u.getPrimaryEmail().toLowerCase()).getExt());
+        UserFunctions.setName(u,orgChanges.get(u.getPrimaryEmail().toLowerCase()).getLastName(),orgChanges.get(u.getPrimaryEmail().toLowerCase()).getFirstName());
         try{
           //todo activate this
-          //service.users().update(u.getPrimaryEmail(),u).execute();
+          service.users().update(u.getPrimaryEmail(),u).execute();
           System.out.println("did not update user");
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
@@ -162,14 +169,14 @@ public class OrgMovementDetector
   {
     //do we need to offboard?
     if(u.getSuspended()){
-      if(oldInfo.containsKey(u.getPrimaryEmail())){
+      if(!Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().trim().equals("offboard")){
         return OFFBOARD;
       }else{
         return DO_NOTHING;
       }
     }
 
-    if(!oldInfo.containsKey(u.getPrimaryEmail())){
+    if(!oldInfo.containsKey(u.getPrimaryEmail()) || oldInfo.get(u.getPrimaryEmail(),"org").trim().toLowerCase().equals("offboard")){
       return ONBOARD;
     }
 
@@ -402,8 +409,8 @@ public class OrgMovementDetector
         try{
           removeFromTitleGroups(u.getPrimaryEmail(),oldTitle,oldOrg,oldArea,oldRegion);
           addToTitleGroups(u.getPrimaryEmail(),title,org,area,region);
+          officeSpace.changeUserTitle(u.getPrimaryEmail(),title);
           oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
-          //todo officeSpace.changeUserTitle()
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
           logs.append("\r\n");
@@ -418,8 +425,8 @@ public class OrgMovementDetector
           removeFromAllGroups(u.getPrimaryEmail(),oldTitle,oldOrg,oldArea,oldRegion);
           addToAllGroups(u.getPrimaryEmail(),title,org,area,region);
           sendEmailOnOrgChange(u,oldOrg,oldExt);
+          officeSpace.changeUserTitle(u.getPrimaryEmail(),title);
           oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
-          //todo officeSpace.changeUserTitle()
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
           logs.append("\r\n");
@@ -432,7 +439,6 @@ public class OrgMovementDetector
           removeFromAllGroups(u.getPrimaryEmail(),title,org,area,region);
           service.users().update(u.getPrimaryEmail(),u).execute();
           System.out.println(u.getOrgUnitPath());
-          oldOrgTable.remove(u.getPrimaryEmail());
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
           logs.append("\r\n");
@@ -441,6 +447,21 @@ public class OrgMovementDetector
 
       case ONBOARD:
         try{
+          if(!org.toLowerCase().contains("training")){
+            throw new LogException("User "+u.getPrimaryEmail()+" could not be onboarded: org unit not training org");
+          }
+          String availableExt = null;
+          for(String ext : officeSpace.getOrgsExtensions(org)){
+            if(officeSpace.isLabelAvailable(ext)){
+              availableExt = ext.toLowerCase();
+              break;
+            }
+          }
+          if(availableExt == null){
+            throw new LogException("User "+u.getPrimaryEmail()+" could not be onboarded: org unit has no available extensions");
+          }else{
+            officeSpace.createUser(availableExt, UserFunctions.getFirstName(u),UserFunctions.getLastName(u),title);
+          }
           addToAllGroups(u.getPrimaryEmail(),title,org,area,region);
           sendEmailOnNewUser(u);
           oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
