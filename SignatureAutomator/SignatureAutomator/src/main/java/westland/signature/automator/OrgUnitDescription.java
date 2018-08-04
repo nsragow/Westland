@@ -81,11 +81,9 @@ public class OrgUnitDescription
   }
   public OrgUnitDescription put(String key,String value)
   {
-    if(allowedKeys.contains(key)){
-      pairs.put(key,value);
-    }else{
-      throw new IllegalStateException("has unrecognized key "+ key);
-    }
+
+    pairs.put(key,value);
+    
     return this;
   }
   public String get(String key)

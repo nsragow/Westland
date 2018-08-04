@@ -10,8 +10,9 @@ public class OfficeSpaceEmployee
   private String firstName;
   private String lastName;
   private OfficeSpaceSeat seat;
+  private String title;
 
-  public OfficeSpaceEmployee(long id, String email, String seated, OfficeSpaceSeat seat, String firstName, String lastName)
+  public OfficeSpaceEmployee(long id, String email, String seated, OfficeSpaceSeat seat, String firstName, String lastName, String title)
   {
     this.firstName = firstName;
     this.lastName = lastName;
@@ -19,10 +20,18 @@ public class OfficeSpaceEmployee
     this.email = email;
     this.seated = seated;
     this.seat = seat;
+    this.title = title;
+    if(title == null){
+      title = "";
+    }
   }
   public String getFirstName()
   {
     return firstName;
+  }
+  public String getTitle()
+  {
+    return title;
   }
   public long getId()
   {

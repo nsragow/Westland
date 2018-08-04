@@ -32,4 +32,5 @@ public class Strings
   static Set<String> Rollout;
   static String workingDirectory;
   static String officeSpaceAPIkey;
+  static String incomplete_signature_header;
 }

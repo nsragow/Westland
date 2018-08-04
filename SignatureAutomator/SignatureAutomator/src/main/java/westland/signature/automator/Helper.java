@@ -47,7 +47,7 @@ public class Helper
   }
   public static int waitOnOption(String[] options, Scanner sc)
   {
-    
+
     while(true){
       String line = sc.nextLine();
       line = line.toLowerCase().trim();

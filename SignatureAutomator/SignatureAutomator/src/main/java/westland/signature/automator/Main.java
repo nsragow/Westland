@@ -207,7 +207,7 @@ public class Main
     Strings.itCC = new String[]{Strings.tomer_email,Strings.abe_email,Strings.noah_email};
     Strings.workingDirectory = Main.workingDirectory;
     Strings.officeSpaceAPIkey = STRINGS.get("officeSpaceAPIkey","val");
-
+    Strings.incomplete_signature_header = STRINGS.get("incomplete_signature_header","val");
   }
   /**
   * Build and returns a Directory service object authorized with the service accounts
@@ -344,7 +344,8 @@ public class Main
     }catch(LogException e){
       emailOrLog(e);
     }catch(Exception e){
-
+      emailOrErr(e);
+      e.printStackTrace();
     }
 
   }
@@ -356,7 +357,7 @@ public class Main
   {
     System.out.println(Helper.exceptionToString(e));
     try{
-      serviceManager.sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,Helper.exceptionToString(e));
+      serviceManager.sendErrorReport(Helper.exceptionToString(e));
     }catch(Exception b)
     {
       reports.err(Helper.exceptionToString(b));
@@ -376,7 +377,7 @@ public class Main
   {
     try{
       if(reports.hasReport()){
-        serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"[Automated] G-Suite Manager Error Reports",reports.getReport(),Strings.itCC);
+        serviceManager.sendErrorReport(reports.getReport());
       }
     }catch(Exception e){
       e.printStackTrace();

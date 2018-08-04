@@ -18,9 +18,12 @@ public class ExtensionMapper
     }
   }
 
-  public String getOrg(int extension)
+  public String getOrg(String extension)
   {
-    return extTable.get(extension+"","org");
+    if(!extTable.containsKey(extension)){
+      return "Lost in Space";
+    }
+    return extTable.get(extension,"org");
   }
   public Collection<String> getLabels(String org)
   {

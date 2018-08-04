@@ -12,9 +12,29 @@ public class UserFunctions
     List<ArrayMap<String,Object>> orgList = null;
     try{
       orgList = SignatureBuilder.objectToArrayMapList(orginizations);
-      return orgList.get(0).get("title").toString();
+      return orgList.get(0).get("title").toString().trim();
     }catch(NullPointerException e){
       throw new NullPointerException("Could not get title on user "+user.getPrimaryEmail()+" "+Helper.exceptionToString(e));
+    }
+  }
+  public static void setTitle(User user, String title)throws NullPointerException, IllegalArgumentException
+  {
+    Object orginizations = user.getOrganizations();
+    if(orginizations==null){
+      ArrayList<ArrayMap<String,Object>> mapiList = new ArrayList<ArrayMap<String,Object>>();
+      ArrayMap<String,Object> mapizap = new ArrayMap<>();
+      mapizap.put("title",title);
+      mapiList.add(mapizap);
+
+      orginizations = mapiList;
+    }
+    List<ArrayMap<String,Object>> orgList = null;
+    try{
+      orgList = SignatureBuilder.objectToArrayMapList(orginizations);
+      orgList.get(0).put("title",title);
+      user.setOrganizations(orgList);
+    }catch(NullPointerException e){
+      throw new NullPointerException("Could not set title on user "+user.getPrimaryEmail()+" "+Helper.exceptionToString(e));
     }
   }
   public static String getExt(User user)
@@ -23,7 +43,7 @@ public class UserFunctions
       if(cs!=null){
         Map<String,Object> addInfo = cs.get("Additional_Info");
         if(addInfo!=null){
-          return addInfo.get("Extension").toString();
+          return addInfo.get("Extension").toString().trim();
 
         }else{
           return "";
@@ -37,7 +57,7 @@ public class UserFunctions
   }
   public static String getFirstName(User u)
   {
-    return u.getName().getGivenName();
+    return u.getName().getGivenName().trim();
   }
   public static void setName(User u, String firstName, String lastName)
   {
@@ -46,7 +66,7 @@ public class UserFunctions
   }
   public static String getLastName(User u)
   {
-    return u.getName().getFamilyName();
+    return u.getName().getFamilyName().trim();
   }
   public static void setExt(User user, int ext)
   {
@@ -57,7 +77,9 @@ public class UserFunctions
         addInfo.put("Extension",ext);
 
       }else{
-        throw new LogException("could not set ext for " + user.getPrimaryEmail() + " because Additional Info was not found");
+        cs.put("Additional_Info",new HashMap<String,Object>());
+        addInfo = cs.get("Additional_Info");
+        addInfo.put("Extension",ext);
       }
     }else{
       cs = new HashMap<String,Map<String,Object>>();

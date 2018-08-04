@@ -27,8 +27,7 @@ public class CSVReader
 
     }catch(Exception e){
       //do something
-      System.out.println("hit exception");
-      e.printStackTrace();
+      throw new LogException(Helper.exceptionToString(e));
     }
   }
   public Table getTable()

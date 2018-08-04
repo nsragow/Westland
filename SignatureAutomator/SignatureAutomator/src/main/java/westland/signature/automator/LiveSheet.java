@@ -45,7 +45,7 @@ public class LiveSheet
           updateUser(table[i]);
           table[i][UPDATE] = "no";
           signaturesToUpdate.add(table[i][EMAIL]);
-        }catch(LogException e){
+        }catch(Exception e){
 
           stringBuilder.append(Helper.exceptionToString(e));
           stringBuilder.append("\n");
@@ -68,8 +68,9 @@ public class LiveSheet
       SignatureUpdater su = new SignatureUpdater(new DataCollector(serviceManager, new StringBuilder()).getDataMap(),serviceManager);
       for(String email : signaturesToUpdate){
         try{
-          su.updateSignature(email);
-        }catch(IOException e){
+          //su.updateSignature(email);
+          //todo now orgcheck takes care of thsi?
+        }catch(Exception e){
           stringBuilder.append(Helper.exceptionToString(e));
         }
       }
@@ -112,12 +113,11 @@ public class LiveSheet
       Map<String,Map<String,Object>> cs = user.getCustomSchemas();
       if(cs!=null){
         Map<String,Object> addInfo = cs.get("Additional_Info");
-        if(addInfo!=null){
-          addInfo.put("Extension",ext);
-
-        }else{
-          throw new LogException("could not update " + email + " because Additional Info was not found");
+        if(addInfo==null){
+          cs.put("Additional_Info",new HashMap<String,Object>());
+          addInfo = cs.get("Additional_Info");
         }
+        addInfo.put("Extension",ext);
       }else{
 
         cs = new HashMap<String,Map<String,Object>>();
@@ -237,7 +237,13 @@ public class LiveSheet
     for(int i = 0; i < lines.length; i++){
       toAdd = lines[i].split(",");
       for(int j = 0; j < COLUMN_COUNT; j++){
-        String putIntoTable = toAdd[j].trim();
+
+        String putIntoTable;
+        if(toAdd.length>j){
+          putIntoTable = toAdd[j].trim();
+        }else{
+          putIntoTable = "";
+        }
         table[i][j] = putIntoTable;
       }
     }

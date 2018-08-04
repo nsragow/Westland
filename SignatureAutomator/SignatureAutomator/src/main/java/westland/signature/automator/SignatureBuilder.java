@@ -118,7 +118,6 @@ public class SignatureBuilder
       toReturn.append("O: "+phones.get("work")+" ");
       if(pairs.containsKey("ext")&&!pairs.get("ext").equals("")){
 
-        //System.out.println(this.get("email")+" : " + pairs.get("ext"));
 
         toReturn.append("X: "+pairs.get("ext"));
       }
@@ -230,7 +229,7 @@ public class SignatureBuilder
         orgList = objectToArrayMapList(orginizations);
       }catch(IllegalArgumentException i){
         i.printStackTrace();
-        throw i;
+        throw new LogException(u.getPrimaryEmail()+" "+Helper.exceptionToString(i));
       }
       Object title = orgList.get(0).get("title");
       Object company = orgList.get(0).get("name");

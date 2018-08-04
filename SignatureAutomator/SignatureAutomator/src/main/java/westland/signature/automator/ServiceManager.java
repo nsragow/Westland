@@ -211,47 +211,50 @@ public class ServiceManager
     return new Drive.Builder(httpTransport, jsonFactory, null)
     .setHttpRequestInitializer(credential).setApplicationName("Noah'sAppWestlandMiddleWare").build();
   }
-  public void sendEmail(String to, String from, String subject, String bodyText) throws Exception
+  public void sendEmail(String to, String from, String subject, String bodyText) throws IOException
   {
     sendEmail(to,from,subject,bodyText,null);
   }
-  public void sendErrorReport(String bodyText) throws Exception
+  public void sendErrorReport(String bodyText) throws IOException
   {
     sendEmail(Strings.exception_reporting_account,Strings.exception_reporting_account,Strings.exception_email_subject,bodyText,null);
   }
-  public void sendEmail(String to, String from, String subject, String bodyText, String[] ccs) throws Exception
+  public void sendEmail(String to, String from, String subject, String bodyText, String[] ccs) throws IOException
   {
     //todo removeEmailFromGroup
-    System.out.println("not sending email");
-    if(true)return;
-    Properties props = new Properties();
-    Session session = Session.getDefaultInstance(props, null);
+    //if(true)return;
+    try{
+      Properties props = new Properties();
+      Session session = Session.getDefaultInstance(props, null);
 
-    MimeMessage email = new MimeMessage(session);
+      MimeMessage email = new MimeMessage(session);
 
-    email.setFrom(new InternetAddress(from));
-    if(ccs != null){
-      for(String s : ccs){
-        email.addRecipient(javax.mail.Message.RecipientType.CC,new InternetAddress(s));
+      email.setFrom(new InternetAddress(from));
+      if(ccs != null){
+        for(String s : ccs){
+          email.addRecipient(javax.mail.Message.RecipientType.CC,new InternetAddress(s));
+
+        }
 
       }
+      email.addRecipient(javax.mail.Message.RecipientType.TO,new InternetAddress(to));
+      email.setSubject(subject);
+      email.setText(bodyText);
 
+
+      ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+      email.writeTo(buffer);
+      byte[] bytes = buffer.toByteArray();
+      String encodedEmail = Base64.encodeBase64URLSafeString(bytes);
+      Message message = new Message();
+      message.setRaw(encodedEmail);
+
+
+
+      this.getGmail(from).users().messages().send(from, message).execute();
+    }catch(javax.mail.MessagingException e){
+      throw new LogException(Helper.exceptionToString(e));
     }
-    email.addRecipient(javax.mail.Message.RecipientType.TO,new InternetAddress(to));
-    email.setSubject(subject);
-    email.setText(bodyText);
-
-
-    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-    email.writeTo(buffer);
-    byte[] bytes = buffer.toByteArray();
-    String encodedEmail = Base64.encodeBase64URLSafeString(bytes);
-    Message message = new Message();
-    message.setRaw(encodedEmail);
-
-
-
-    this.getGmail(from).users().messages().send(from, message).execute();
 
   }
   public void changeUserSignature(String user, String toChangeTo) throws IOException

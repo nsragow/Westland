@@ -40,41 +40,42 @@ public class CommandInterface
       System.out.println(s);
     }
     while(true){
-      switch(sc.nextLine().toLowerCase().trim()){
-        case "quit":
-        case "q":
-        case "exit":
+      try{
+        switch(sc.nextLine().toLowerCase().trim()){
+          case "quit":
+          case "q":
+          case "exit":
           System.out.println("exiting...");
           System.exit(0);
-        case "help":
+          case "help":
           System.out.println("Commands:");
           for(String s : commands){
             System.out.println(s);
           }
           break;
-        case "create":
+          case "create":
           createCommand();
           break;
-        case "masscreate":
+          case "masscreate":
           massCreateCommand();
           break;
-        case "massdelete":
+          case "massdelete":
           massDeleteCommand();
           break;
-        case "delete":
+          case "delete":
           //deleteCommand();
           System.out.println(notSupported);
           break;
-        case "add":
+          case "add":
           addCommand();
           break;
-        case "edit":
+          case "edit":
           editCommand();
           break;
-        case "print":
+          case "print":
           printCommand();
           break;
-        case "orgcheck":
+          case "orgcheck":
           System.out.println("Are you sure? This may take a few minutes. (Y/N)");
           if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
             System.out.println("executing");
@@ -82,7 +83,7 @@ public class CommandInterface
             System.out.println("done");
           }
           break;
-        case "shortcheck":
+          case "shortcheck":
           System.out.println("Are you sure? This may take a few minutes. (Y/N)");
           if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
             System.out.println("executing livesheet");
@@ -92,7 +93,7 @@ public class CommandInterface
             System.out.println("done");
           }
           break;
-        case "livesheet":
+          case "livesheet":
           System.out.println("Are you sure? This may take a few minutes. (Y/N)");
           if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
             System.out.println("executing");
@@ -100,7 +101,7 @@ public class CommandInterface
             System.out.println("done");
           }
           break;
-        case "fullrun":
+          case "fullrun":
           System.out.println("Are you sure? This may take a long time. (Y/N)");
           if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
             System.out.println("executing");
@@ -108,9 +109,13 @@ public class CommandInterface
             System.out.println("done");
           }
           break;
-        default:
+          default:
           System.out.println("Command not recongnized, try \"help\"");
 
+        }
+      }catch(Exception e){
+        e.printStackTrace();
+        System.out.println("Hit the above uncaught exception. Returning to main menu");
       }
     }
   }

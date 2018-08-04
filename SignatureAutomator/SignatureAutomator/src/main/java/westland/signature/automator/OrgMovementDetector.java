@@ -76,6 +76,9 @@ public class OrgMovementDetector
   private static final int MANAGER = 1;
   private static final int AREA_MANAGER = 0;
 
+  private static final String HR_EMAIL = "noah.s@westlandreg.com";
+  private static final String HR_EMAIL_SUBJECT = "[Automated] Office Space Change Log";
+
 
 
   private Collection<User> users;
@@ -87,6 +90,7 @@ public class OrgMovementDetector
   private Table orgToGroup;
   private OfficeSpaceConnection officeSpace;
   private GroupWrapper gW;
+  private List<String> updateThisSignature;
   public OrgMovementDetector(Set<User> users, Map<String,SignatureBuilder> dataMap, Map<String,OrgUnitDescription> orgMap, ServiceManager serviceManager) throws IOException
   {
     this.users = serviceManager.getUserSetBlackRemoved();
@@ -98,36 +102,43 @@ public class OrgMovementDetector
     CSVReader csvread = new CSVReader(Strings.workingDirectory+"/src/main/resources/companynames.csv");
     orgToGroup = csvread.getTable();
     gW = new GroupWrapper(serviceManager);
-    officeSpace = new OfficeSpaceConnection();
+    officeSpace = new OfficeSpaceConnection(serviceManager.getUserSetBlackRemoved());
+    updateThisSignature = new ArrayList<>();
   }
   public void checkForChangeInOrg()
   {//todo!, now we must make sure that things are called in order, not sure but threads may affect this
 
-
     //first check office space and update accordingly
-    Collection<User> users = serviceManager.getUserSetBlackRemoved();
     Map<String,OfficeSpaceConnection.ChangeDetail> orgChanges = officeSpace.getDifference(users);
     boolean refreshNeeded = false;
+    try{
+      if(!officeSpace.getChangeLog().isEmpty()){
+        serviceManager.sendEmail(HR_EMAIL,HR_EMAIL,HR_EMAIL_SUBJECT,officeSpace.getChangeLog());
+      }
+    }catch(IOException e){
+      logs.append("Tried to send email to HR but failed\n");
+    }
+
     for(String uString : orgChanges.keySet()){
       User u;
       try{
         u = serviceManager.getUser(uString);
+        if(orgChanges.containsKey(u.getPrimaryEmail().toLowerCase())){
+          u.setOrgUnitPath("/"+orgChanges.get(u.getPrimaryEmail().toLowerCase()).getOrg());
+          UserFunctions.setExt(u,Integer.parseInt(orgChanges.get(u.getPrimaryEmail().toLowerCase()).getExt()));
+          UserFunctions.setName(u,orgChanges.get(u.getPrimaryEmail().toLowerCase()).getFirstName(),orgChanges.get(u.getPrimaryEmail().toLowerCase()).getLastName());
+          UserFunctions.setTitle(u,orgChanges.get(u.getPrimaryEmail().toLowerCase()).getTitle());
+          try{
+            //todo activate this
+            service.users().update(u.getPrimaryEmail(),u).execute();
+          }catch(Exception e){
+            logs.append(Helper.exceptionToString(e)+"With the following user and org unit: "+u.getPrimaryEmail()+" || "+orgChanges.get(u.getPrimaryEmail().toLowerCase()).getOrg()+"\n");
+            refreshNeeded = true;
+          }
+        }
       }catch(Exception e){
         logs.append(Helper.exceptionToString(e));
         continue;
-      }
-      if(orgChanges.containsKey(u.getPrimaryEmail().toLowerCase())){
-        u.setOrgUnitPath("/"+orgChanges.get(u.getPrimaryEmail().toLowerCase()).getOrg());
-        UserFunctions.setExt(u,(int)orgChanges.get(u.getPrimaryEmail().toLowerCase()).getExt());
-        UserFunctions.setName(u,orgChanges.get(u.getPrimaryEmail().toLowerCase()).getLastName(),orgChanges.get(u.getPrimaryEmail().toLowerCase()).getFirstName());
-        try{
-          //todo activate this
-          service.users().update(u.getPrimaryEmail(),u).execute();
-          System.out.println("did not update user");
-        }catch(Exception e){
-          logs.append(Helper.exceptionToString(e));
-          refreshNeeded = true;
-        }
       }
     }
     if(refreshNeeded)serviceManager.refreshUsers();
@@ -142,12 +153,15 @@ public class OrgMovementDetector
         logs.append(Helper.exceptionToString(e));
       }
     }
+
     try{
       Table.writeTableToCSV(oldOrgTable,Strings.current_user_orgs);
 
     }catch(Exception e){
       logs.append("could not update org to user matching\r\n"+Helper.exceptionToString(e));
     }
+    updateSignatures();
+
     if(logs.length() != 0){
       throw new LogException(logs.toString());
     }
@@ -175,8 +189,8 @@ public class OrgMovementDetector
         return DO_NOTHING;
       }
     }
-
-    if(!oldInfo.containsKey(u.getPrimaryEmail()) || oldInfo.get(u.getPrimaryEmail(),"org").trim().toLowerCase().equals("offboard")){
+//todo need to deal with users being moved to unusual org units
+    if(!oldInfo.containsKey(u.getPrimaryEmail())){
       return ONBOARD;
     }
 
@@ -350,7 +364,7 @@ public class OrgMovementDetector
       area = desc.get("area");
       region = desc.get("region");
     }else{
-      throw new LogException("org map did not have proper set up for new info");
+      throw new LogException("org map did not have proper set up for new info "+org+" "+u.getPrimaryEmail());
     }
     try{
       title = UserFunctions.getTitle(u);
@@ -404,13 +418,13 @@ public class OrgMovementDetector
 
       case TITLE_CHANGE:
         if(!oldValid){
-          throw new LogException("trying to mess with old info that is not valid");
+          throw new LogException("trying to mess with old info that is not valid on user "+u.getPrimaryEmail());
         }
         try{
           removeFromTitleGroups(u.getPrimaryEmail(),oldTitle,oldOrg,oldArea,oldRegion);
           addToTitleGroups(u.getPrimaryEmail(),title,org,area,region);
-          officeSpace.changeUserTitle(u.getPrimaryEmail(),title);
           oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
+          updateThisSignature.add(u.getPrimaryEmail());
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
           logs.append("\r\n");
@@ -419,14 +433,14 @@ public class OrgMovementDetector
 
       case FULL_CHANGE:
         if(!oldValid){
-          throw new LogException("trying to mess with old info that is not valid");
+          throw new LogException("trying to mess with old info that is not valid on user "+u.getPrimaryEmail());
         }
         try{
           removeFromAllGroups(u.getPrimaryEmail(),oldTitle,oldOrg,oldArea,oldRegion);
           addToAllGroups(u.getPrimaryEmail(),title,org,area,region);
           sendEmailOnOrgChange(u,oldOrg,oldExt);
-          officeSpace.changeUserTitle(u.getPrimaryEmail(),title);
           oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
+          updateThisSignature.add(u.getPrimaryEmail());
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
           logs.append("\r\n");
@@ -438,7 +452,8 @@ public class OrgMovementDetector
         try{
           removeFromAllGroups(u.getPrimaryEmail(),title,org,area,region);
           service.users().update(u.getPrimaryEmail(),u).execute();
-          System.out.println(u.getOrgUnitPath());
+          officeSpace.deleteUser(u.getPrimaryEmail().toLowerCase());
+          oldOrgTable.remove(u.getPrimaryEmail());
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
           logs.append("\r\n");
@@ -447,21 +462,8 @@ public class OrgMovementDetector
 
       case ONBOARD:
         try{
-          if(!org.toLowerCase().contains("training")){
-            throw new LogException("User "+u.getPrimaryEmail()+" could not be onboarded: org unit not training org");
-          }
-          String availableExt = null;
-          for(String ext : officeSpace.getOrgsExtensions(org)){
-            if(officeSpace.isLabelAvailable(ext)){
-              availableExt = ext.toLowerCase();
-              break;
-            }
-          }
-          if(availableExt == null){
-            throw new LogException("User "+u.getPrimaryEmail()+" could not be onboarded: org unit has no available extensions");
-          }else{
-            officeSpace.createUser(availableExt, UserFunctions.getFirstName(u),UserFunctions.getLastName(u),title);
-          }
+          officeSpace.createUser(UserFunctions.getFirstName(u),UserFunctions.getLastName(u),title,u.getPrimaryEmail().toLowerCase());
+
           addToAllGroups(u.getPrimaryEmail(),title,org,area,region);
           sendEmailOnNewUser(u);
           oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
@@ -629,6 +631,17 @@ public class OrgMovementDetector
         removeTitleGroup(u,oldTitle,oldOrgName.get(u.getPrimaryEmail(),"org"));
       }
     }//else both are invalid
+  }
+  private void updateSignatures()
+  {
+    SignatureUpdater su = new SignatureUpdater(new DataCollector(serviceManager, new StringBuilder()).getDataMap(),serviceManager);
+    for(String email : updateThisSignature){
+      try{
+        su.updateSignature(email);
+      }catch(IOException e){
+        logs.append(Helper.exceptionToString(e));
+      }
+    }
   }
 }
 

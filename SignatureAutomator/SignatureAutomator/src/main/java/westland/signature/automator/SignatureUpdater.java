@@ -67,6 +67,8 @@ import org.apache.commons.codec.binary.Base64;
 
 public class SignatureUpdater
 {
+  private static final String INCOMPLETE_DATA_BODY = "Your GSuite user data is incomplete. This error is likely being caused by incorrect location data. To fix this have your manager update your location in OfficeSpace. \nPlease let your area manager know that you are getting this email.";
+
   private Directory dir;
   private Map<String,SignatureBuilder> dataMap;
   private ServiceManager serviceManager;
@@ -88,12 +90,11 @@ public class SignatureUpdater
     email = email.toLowerCase();
     SignatureBuilder sb = dataMap.get(email);
     if(sb == null){
-      System.out.println(email);
     }
-    if(!dataMap.get(email.toLowerCase()).isComplete()){
-      logs.append(email + " does not have sufficient information on their user+orgunit to create proper signature - signature not created\n");
+    if(sb == null || !sb.isComplete()){
+      serviceManager.sendEmail(email, email, Strings.incomplete_signature_header, INCOMPLETE_DATA_BODY);
+
     }else{
-      //System.out.println("updated sig for "+email);
       serviceManager.changeUserSignature(email, SignatureGenerator.makeSignature(dataMap.get(email)));
     }
   }
@@ -107,7 +108,6 @@ public class SignatureUpdater
 
     }
     /*
-    System.out.println("\n\n\n\n");
     Table table = new Table(new String[]{"Email","Name","Org","Website","Address","Phones","Title"});
     for(SignatureBuilder sigB : dataMap.values()){
 
@@ -120,8 +120,6 @@ public class SignatureUpdater
     }catch(Exception e){
       e.printStackTrace();
     }
-    System.out.println("\n\n\n\n");
-    //System.out.println(orgMap);
     */
 
 
