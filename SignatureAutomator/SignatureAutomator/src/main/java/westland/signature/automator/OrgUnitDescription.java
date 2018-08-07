@@ -47,7 +47,7 @@ public class OrgUnitDescription
     pairs = new HashMap<>();
     setUp();
   }
-  protected OrgUnitDescription(String description)
+  protected OrgUnitDescription(String name, String description)
   {
     setUp();
     pairs = new HashMap<>();
@@ -83,7 +83,7 @@ public class OrgUnitDescription
   {
 
     pairs.put(key,value);
-    
+
     return this;
   }
   public String get(String key)

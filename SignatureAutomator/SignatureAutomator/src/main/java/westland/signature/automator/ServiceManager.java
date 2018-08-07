@@ -222,7 +222,8 @@ public class ServiceManager
   public void sendEmail(String to, String from, String subject, String bodyText, String[] ccs) throws IOException
   {
     //todo removeEmailFromGroup
-    //if(true)return;
+    System.out.println(bodyText);
+    if(true)return;
     try{
       Properties props = new Properties();
       Session session = Session.getDefaultInstance(props, null);

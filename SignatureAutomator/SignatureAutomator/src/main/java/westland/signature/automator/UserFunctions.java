@@ -14,7 +14,7 @@ public class UserFunctions
       orgList = SignatureBuilder.objectToArrayMapList(orginizations);
       return orgList.get(0).get("title").toString().trim();
     }catch(NullPointerException e){
-      throw new NullPointerException("Could not get title on user "+user.getPrimaryEmail()+" "+Helper.exceptionToString(e));
+      return "";
     }
   }
   public static void setTitle(User user, String title)throws NullPointerException, IllegalArgumentException
@@ -68,7 +68,7 @@ public class UserFunctions
   {
     return u.getName().getFamilyName().trim();
   }
-  public static void setExt(User user, int ext)
+  public static void setExt(User user, String ext)
   {
     Map<String,Map<String,Object>> cs = user.getCustomSchemas();
     if(cs!=null){

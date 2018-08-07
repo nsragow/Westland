@@ -111,6 +111,7 @@ public class OfficeSpaceConnection
     .header("AUTHORIZATION", "Token token=\""+Strings.officeSpaceAPIkey+"\"");
     try{
       Response response = builder.put(payload);
+      System.out.println(response.getStatus());
       ChangeDetail cd = emailToDetail.get(email);
       String oldTitle;
       if(cd != null){
@@ -166,6 +167,8 @@ public class OfficeSpaceConnection
     .header("AUTHORIZATION", "Token token=\""+Strings.officeSpaceAPIkey+"\"");
     try{
       Response response = builder.post(payload);
+      System.out.println(response.getStatus());
+
       logDetails.add(new LogDetail(email,"New User"));
     }catch(Exception e){
       throw new LogException(Helper.exceptionToString(e));
@@ -186,6 +189,8 @@ public class OfficeSpaceConnection
     .header("AUTHORIZATION", "Token token=\""+Strings.officeSpaceAPIkey+"\"");
     try{
       Response response = builder.delete();
+      System.out.println(response.getStatus());
+      
       logDetails.add(new LogDetail(email,"User Deleted"));
     }catch(Exception e){
       throw new LogException(Helper.exceptionToString(e));

@@ -20,10 +20,11 @@ public class CommandInterface
     "add - add user(s) to group or orgunit",
     "edit - change settings and values of orgunits, groups and users",
     "print - get data on orgunits, groups, and users",
-    "orgcheck - run the main workflow function orgcheck",
+    "changeDetector - run the main workflow function orgcheck",
     "livesheet - run the main workflow function livesheet",
     "fullrun - run the main workflow function fullrun",
-    "shortcheck - combines livesheet with orgcheck"
+    "shortcheck - combines livesheet with changeDetector",
+    "officespace - add users from gsuite to officespace"
   };
 
   public CommandInterface(ServiceManager serviceManager)
@@ -56,6 +57,9 @@ public class CommandInterface
           case "create":
           createCommand();
           break;
+          case "officespace":
+          officeSpaceCommand();
+          break;
           case "masscreate":
           massCreateCommand();
           break;
@@ -75,7 +79,7 @@ public class CommandInterface
           case "print":
           printCommand();
           break;
-          case "orgcheck":
+          case "changedetector":
           System.out.println("Are you sure? This may take a few minutes. (Y/N)");
           if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
             System.out.println("executing");
@@ -135,6 +139,24 @@ public class CommandInterface
         break;
       default:
         throw new RuntimeException("Unexpected Error");
+    }
+
+  }
+  private void officeSpaceCommand()
+  {
+    System.out.println("Enter list of Office Space Users");
+    String userList = sc.nextLine();
+
+    System.out.println("Execute? (Y/N)");
+    if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
+      System.out.println("executing...");
+      com.addToOfficeSpace(userList);
+      System.out.println("done");
+    }else{
+      System.out.println("Do you want to start over? (Y/N)");
+      if(Helper.waitOnOption(new String[]{"Y","N"},sc)==0){
+        officeSpaceCommand();
+      }
     }
 
   }

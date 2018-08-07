@@ -116,7 +116,7 @@ public class DataCollector
 
       for(OrgUnit o : list){
         if(!o.getDescription().equals("#ignore")){
-          OrgUnitDescription toAdd = new OrgUnitDescription(o.getDescription());
+          OrgUnitDescription toAdd = new OrgUnitDescription(o.getName(),o.getDescription());
           orgMap.put(o.getName(), toAdd);
         }
       }

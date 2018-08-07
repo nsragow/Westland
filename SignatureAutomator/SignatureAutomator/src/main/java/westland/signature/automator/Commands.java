@@ -16,13 +16,46 @@ public class Commands
 
   private ServiceManager serviceManager;
   private GroupWrapper gW;
+  private OfficeSpaceConnection officeSpace;
   private Scanner sc;
 
   public Commands(ServiceManager serviceManager, Scanner sc)
   {
+    this.officeSpace = officeSpace;
     this.serviceManager = serviceManager;
     gW = new GroupWrapper(serviceManager);
     this.sc = sc;
+  }
+  public void addToOfficeSpace(String userString)
+  {
+    if(officeSpace == null){
+      try{
+        System.out.println("initializing OfficeSpace...");
+        officeSpace = new OfficeSpaceConnection(serviceManager.getUserSetBlackRemoved());
+
+      }catch(Exception e){
+        e.printStackTrace();
+        System.out.println("Could not establish connection to OfficeSpace. Command aborted");
+        return;
+      }
+    }
+    try{
+      Collection<User> users = formattedUserStringToSet(userString);
+
+
+      for(User u : users){
+        System.out.println(u.getPrimaryEmail());
+        try{
+          officeSpace.createUser(UserFunctions.getFirstName(u), UserFunctions.getLastName(u), UserFunctions.getTitle(u), u.getPrimaryEmail());
+        }catch(Exception e){
+          e.printStackTrace();
+          System.out.println("Hit above exception when trying to add " + u.getPrimaryEmail() + " to OfficeSpace");
+        }
+      }
+    }catch(IOException e){
+      System.out.println("error while collecting users");
+      e.printStackTrace();
+    }
   }
   public void printUserData(String pathToPrint)
   {
@@ -100,7 +133,23 @@ public class Commands
         return users;
       }
     }else{//todo assumes only one name
-      throw new RuntimeException();
+      String[] usersArray = userString.split(",");
+      HashSet<String> userSet = new HashSet<String>();
+      for(String s : usersArray){
+        userSet.add(s.toLowerCase().trim());
+        System.out.println(" kee p "+ s);
+      }
+
+      Iterator<User> i = users.iterator();
+      while(i.hasNext()){
+        User next = i.next();
+        if(!userSet.contains(next.getPrimaryEmail().toLowerCase().trim())){
+          System.out.println(next.getPrimaryEmail() + " removed");
+          i.remove();
+        }
+      }
+      return users;
+
     }
   }
   public void printUserInfo(String formattedString, String[] fields)
@@ -164,7 +213,7 @@ public class Commands
         }
       }
 
-      OrgUnitDescription oD = new OrgUnitDescription(o.getDescription());
+      OrgUnitDescription oD = new OrgUnitDescription(o.getName(),o.getDescription());
       for(String tag : tags){
         if(tag.contains("=")){
           String[] split = tag.split("=");
@@ -226,7 +275,7 @@ public class Commands
         }
       }
 
-      OrgUnitDescription oD = new OrgUnitDescription(o.getDescription());
+      OrgUnitDescription oD = new OrgUnitDescription(o.getName(),o.getDescription());
       System.out.println("--------------------------------------");
       for(String tag : tags){
         String field = tag.toLowerCase().trim();

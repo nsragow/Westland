@@ -45,7 +45,7 @@ public class GroupWrapper
   {
     createGroup(Helper.orgUnitToManagerGroupEmail(name),name + " Management","Managers of "+name,MANAGEMENT);
   }
-  public void createStaffGroup(String name) throws IOException
+  public void createStaffGroup(OrgUnitDescription name) throws IOException
   {
     createGroup(Helper.orgUnitToStaffGroupEmail(name),name + " Staff","Staff of "+name,STAFF);
   }

@@ -29,13 +29,19 @@ public class Helper
     e.printStackTrace(new PrintWriter(errors));
     return errors.toString();
   }
-  public static String orgUnitToStaffGroupEmail(String orgUnit)
+  public static String orgUnitToStaffGroupEmail(OrgUnitDescription oud)
   {
-    return orgUnit.replace(" ","") + "staff@westlandreg.com";
+    if(oud.containsKey("domain") && null != oud.get("domain") && !oud.get("domain").trim().isEmpty()){
+      return "staff"+oud.get("domain");
+    }
+    return oud.getName().replace(" ","") + "staff@westlandreg.com";
   }
-  public static String orgUnitToManagerGroupEmail(String orgUnit)
+  public static String orgUnitToManagerGroupEmail(OrgUnitDescription oud)
   {
-    return orgUnit.replace(" ","") + "management@westlandreg.com";
+    if(oud.containsKey("domain") && null != oud.get("domain") && !oud.get("domain").trim().isEmpty()){
+      return "staff"+oud.get("domain");
+    }
+    return oud.getName().replace(" ","") + "management@westlandreg.com";
   }
   public static String areaToGroupEmail(String areaName)
   {

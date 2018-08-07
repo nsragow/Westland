@@ -125,7 +125,7 @@ public class OrgMovementDetector
         u = serviceManager.getUser(uString);
         if(orgChanges.containsKey(u.getPrimaryEmail().toLowerCase())){
           u.setOrgUnitPath("/"+orgChanges.get(u.getPrimaryEmail().toLowerCase()).getOrg());
-          UserFunctions.setExt(u,Integer.parseInt(orgChanges.get(u.getPrimaryEmail().toLowerCase()).getExt()));
+          UserFunctions.setExt(u,orgChanges.get(u.getPrimaryEmail().toLowerCase()).getExt());
           UserFunctions.setName(u,orgChanges.get(u.getPrimaryEmail().toLowerCase()).getFirstName(),orgChanges.get(u.getPrimaryEmail().toLowerCase()).getLastName());
           UserFunctions.setTitle(u,orgChanges.get(u.getPrimaryEmail().toLowerCase()).getTitle());
           try{
@@ -260,9 +260,9 @@ public class OrgMovementDetector
           gW.removeEmailFromGroup(userName, Helper.regionToGroupEmail(region));
         }
       case MANAGER:
-        gW.removeEmailFromGroup(userName, Helper.orgUnitToManagerGroupEmail(org));
+        gW.removeEmailFromGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())));
       case STAFF:
-        gW.removeEmailFromGroup(userName, Helper.orgUnitToStaffGroupEmail(org));
+        gW.removeEmailFromGroup(userName, Helper.orgUnitToStaffGroupEmail(orgMap.get(org.toLowerCase())));
         break;
       default:
         throw new RuntimeException("Unexpected Error");
@@ -286,15 +286,15 @@ public class OrgMovementDetector
           gW.addEmailToGroup(userName, Helper.regionToGroupEmail(region));
         }
       case MANAGER:
-        if(!gW.hasGroup(Helper.orgUnitToManagerGroupEmail(org))){
+        if(!gW.hasGroup(Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())))){
           gW.createManagementGroup(org);
         }
-        gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(org));
+        gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())));
       case STAFF:
-        if(!gW.hasGroup(Helper.orgUnitToStaffGroupEmail(org))){
+        if(!gW.hasGroup(Helper.orgUnitToStaffGroupEmail(orgMap.get(org.toLowerCase())))){
           gW.createStaffGroup(org);
         }
-        gW.addEmailToGroup(userName, Helper.orgUnitToStaffGroupEmail(org));
+        gW.addEmailToGroup(userName, Helper.orgUnitToStaffGroupEmail(orgMap.get(org.toLowerCase())));
         break;
       default:
         throw new RuntimeException("Unexpected Error");
@@ -312,7 +312,7 @@ public class OrgMovementDetector
           gW.removeEmailFromGroup(userName, Helper.regionToGroupEmail(region));
         }
       case MANAGER:
-        gW.removeEmailFromGroup(userName, Helper.orgUnitToManagerGroupEmail(org));
+        gW.removeEmailFromGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())));
       case STAFF:
         break;
       default:
@@ -337,10 +337,10 @@ public class OrgMovementDetector
           gW.addEmailToGroup(userName, Helper.regionToGroupEmail(region));
         }
       case MANAGER:
-        if(!gW.hasGroup(Helper.orgUnitToManagerGroupEmail(org))){
+        if(!gW.hasGroup(Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())))){
           gW.createManagementGroup(org);
         }
-        gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(org));
+        gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())));
       case STAFF:
         break;
       default:
@@ -592,9 +592,9 @@ public class OrgMovementDetector
   {
     try{
       if(title.toLowerCase().contains("manager")){
-        gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToManagerGroupEmail(Helper.orgPathToName(u.getOrgUnitPath())));
+        gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToManagerGroupEmail(orgMap.get(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase())));
       }
-      gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToStaffGroupEmail(Helper.orgPathToName(u.getOrgUnitPath())));
+      gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToStaffGroupEmail(Helper.orgPathToName(orgMap.get(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase()))));
     }catch(IOException e){
       logs.append(Helper.exceptionToString(e));
     }
@@ -603,9 +603,9 @@ public class OrgMovementDetector
   {
     try{
       if(title.toLowerCase().contains("manager")){
-        gW.removeEmailFromGroup(u.getPrimaryEmail(),Helper.orgUnitToManagerGroupEmail(oldOrg));
+        gW.removeEmailFromGroup(u.getPrimaryEmail(),Helper.orgUnitToManagerGroupEmail(orgMap.get(oldOrg.toLowerCase())));
       }
-      gW.removeEmailFromGroup(u.getPrimaryEmail(),Helper.orgUnitToStaffGroupEmail(oldOrg));
+      gW.removeEmailFromGroup(u.getPrimaryEmail(),Helper.orgUnitToStaffGroupEmail(orgMap.get(oldOrg.toLowerCase())));
     }catch(IOException e){
       logs.append(Helper.exceptionToString(e));
     }
