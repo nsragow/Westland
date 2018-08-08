@@ -222,8 +222,6 @@ public class ServiceManager
   public void sendEmail(String to, String from, String subject, String bodyText, String[] ccs) throws IOException
   {
     //todo removeEmailFromGroup
-    System.out.println(bodyText);
-    if(true)return;
     try{
       Properties props = new Properties();
       Session session = Session.getDefaultInstance(props, null);
@@ -233,8 +231,8 @@ public class ServiceManager
       email.setFrom(new InternetAddress(from));
       if(ccs != null){
         for(String s : ccs){
-          email.addRecipient(javax.mail.Message.RecipientType.CC,new InternetAddress(s));
-
+          //email.addRecipient(javax.mail.Message.RecipientType.CC,new InternetAddress(s));
+//todo
         }
 
       }

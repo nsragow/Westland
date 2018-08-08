@@ -28,18 +28,47 @@ public class OfficeSpaceConnection
   private StringBuilder log;
   private Collection<LogDetail> logDetails;
   private HashMap<String,ChangeDetail> emailToNewOrg;
+  private Set<String> otherUsers;
+  private Set<String> inGSuiteNotOfficeSpace;
+  private Set<String> notSeated;
+  private List<String> extraUserList;
+  private Map<String,LinkedList<IdAndStatus>> emailsToIDandStatus;
 
   private static final String MAIN_DIRECTORY = "SYS: Make Public";
   //private static final String MAIN_DIRECTORY = "SYS: Make Private"; //todo
   private OfficeSpaceDirectory dir;
   private ExtensionMapper extMapper;
+
+  public Collection<String> nonSeatedUsers()
+  {
+    return notSeated;
+  }
+  public Collection<String> missingUsers()
+  {
+    return inGSuiteNotOfficeSpace;
+  }
+  private class IdAndStatus
+  {
+    boolean seated;
+    long id;
+    IdAndStatus(long id, boolean seated)
+    {
+      this.id = id;
+      this.seated = seated;
+    }
+  }
   public OfficeSpaceConnection(Collection<User> users)
   {
     System.setProperty(ClientBuilder.JAXRS_DEFAULT_CLIENT_BUILDER_PROPERTY, "org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder");
     emailToDetail = new HashMap<>();
+    inGSuiteNotOfficeSpace = new HashSet<>();
+    notSeated = new HashSet<>();
+    otherUsers = new HashSet<>();
+    extraUserList = new LinkedList<>();
     emailToNewOrg = new HashMap<>();
     availableExt = new HashSet<>();
     employeeMap = new HashMap<>();
+    emailsToIDandStatus = new HashMap<>();
     extMapper = new ExtensionMapper();
     seatMap = new HashMap<>();
     employeeList = new LinkedList<>();
@@ -85,15 +114,45 @@ public class OfficeSpaceConnection
               logDetails.add(new LogDetail(u.getPrimaryEmail(), title,emailToDetail.get(u.getPrimaryEmail()).getTitle()));
             }
           }
-        }else{
-          logDetails.add(new LogDetail(u.getPrimaryEmail(),"NOT SEATED IN OFFICESPACE"));
+        }else{ //not seated
+          if(otherUsers.contains(u.getPrimaryEmail().toLowerCase())){
+            notSeated.add(u.getPrimaryEmail().toLowerCase());
+          }else{
+            inGSuiteNotOfficeSpace.add(u.getPrimaryEmail().toLowerCase());
+          }
         }
       }catch(Exception e){
         log.append(Helper.exceptionToString(e));
       }
     }
+    removeDuplicates();
     if(log.length()!=0){
       throw new LogException(log.toString());
+    }
+  }
+  private void removeDuplicates()
+  {
+    for(String s : emailsToIDandStatus.keySet()){
+      List<IdAndStatus> lisst = emailsToIDandStatus.get(s);
+      if(lisst.size()>1){
+        boolean seated = false;
+        for(IdAndStatus thing : lisst){
+          seated = thing.seated || seated;
+        }
+        if(seated){
+          for(IdAndStatus thing : lisst){
+            if(!thing.seated){
+              deleteUser(thing.id);
+            }
+          }
+        }else{
+          for(int i = 1; i < lisst.size(); i++){
+            IdAndStatus thing = lisst.get(i);
+
+            deleteUser(thing.id);
+          }
+        }
+      }
     }
   }
   public void changeUserTitle(String email, String title)
@@ -111,7 +170,6 @@ public class OfficeSpaceConnection
     .header("AUTHORIZATION", "Token token=\""+Strings.officeSpaceAPIkey+"\"");
     try{
       Response response = builder.put(payload);
-      System.out.println(response.getStatus());
       ChangeDetail cd = emailToDetail.get(email);
       String oldTitle;
       if(cd != null){
@@ -159,6 +217,9 @@ public class OfficeSpaceConnection
   }
   public void createUser(String firstName, String lastName, String title, String email)
   {
+    if(emailsToIDandStatus.keySet().contains(email.toLowerCase())){
+      return;
+    }
     Entity<String> payload = Entity.json("{\"record\": {\"client_employee_id\": \""+email+"\",\"first_name\": \""+firstName+"\",\"last_name\": \""+lastName+"\",\"source\": \"API\",\"email\": \""+email+"\"}}");
     Client client = ClientBuilder.newClient();
     Invocation.Builder builder = client.target("https://westland.officespacesoftware.com")
@@ -167,7 +228,6 @@ public class OfficeSpaceConnection
     .header("AUTHORIZATION", "Token token=\""+Strings.officeSpaceAPIkey+"\"");
     try{
       Response response = builder.post(payload);
-      System.out.println(response.getStatus());
 
       logDetails.add(new LogDetail(email,"New User"));
     }catch(Exception e){
@@ -179,9 +239,16 @@ public class OfficeSpaceConnection
   public void deleteUser(String email)
   {
     String id = ""+employeeMap.get(email.toLowerCase()).getId();
+    employeeMap.remove(email.toLowerCase());
     if(id == null){
       throw new LogException("could not find OfficeSpaceID for email "+ email);
     }
+    deleteUser(Long.parseLong(id));
+    logDetails.add(new LogDetail(email,"User Deleted"));
+  }
+
+  private void deleteUser(long id)
+  {
     Client client = ClientBuilder.newClient();
     Invocation.Builder builder = client.target("https://westland.officespacesoftware.com")
     .path("/api/1/employees/"+id)
@@ -189,15 +256,12 @@ public class OfficeSpaceConnection
     .header("AUTHORIZATION", "Token token=\""+Strings.officeSpaceAPIkey+"\"");
     try{
       Response response = builder.delete();
-      System.out.println(response.getStatus());
-      
-      logDetails.add(new LogDetail(email,"User Deleted"));
+
     }catch(Exception e){
       throw new LogException(Helper.exceptionToString(e));
     }
-
-
   }
+
   public Collection<String> getOrgsExtensions(String org)
   {
     return extMapper.getLabels(org.toLowerCase());
@@ -301,13 +365,23 @@ public class OfficeSpaceConnection
     JSONObject seated = (JSONObject)employee.get("seating");
     List<Long> ids = new LinkedList<>();
     //todo for now ignore multi seating
+    if(!emailsToIDandStatus.containsKey(((String)employee.get("email")).toLowerCase())){
+      emailsToIDandStatus.put(((String)employee.get("email")).toLowerCase(),new LinkedList<IdAndStatus>());
+    }
+
     if(((String)seated.get("seated")).equals("seated")){
+      emailsToIDandStatus.get(((String)employee.get("email")).toLowerCase()).add(new IdAndStatus((Long)employee.get("id"),true));
       for(Object o : (JSONArray)seated.get("seat_urls")){
         if(seatMap.containsKey(urlToId((String)o))){
+          //we know your seat is good, you should not be deleted
           ids.add(urlToId((String)o));
           employeeList.add(new OfficeSpaceEmployee((Long)employee.get("id"), (String)employee.get("email"), (String)seated.get("seated"), seatMap.get(urlToId((String)o)), (String)employee.get("first_name"), (String)employee.get("last_name"), (String) employee.get("title")));
         }
       }
+    }
+    else{
+      otherUsers.add(((String)employee.get("email")).toLowerCase());
+      emailsToIDandStatus.get(((String)employee.get("email")).toLowerCase()).add(new IdAndStatus((Long)employee.get("id"),false));
     }
   }
   private void parseSeats(String json)

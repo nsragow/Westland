@@ -33,4 +33,6 @@ public class Strings
   static String workingDirectory;
   static String officeSpaceAPIkey;
   static String incomplete_signature_header;
+  static String hr_email;
+  static String it_reporting_email;
 }

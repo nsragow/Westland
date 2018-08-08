@@ -41,13 +41,13 @@ public class GroupWrapper
   {
     createGroup(Helper.areaToGroupEmail(name),name + " Area","Area managers of "+name,MANAGEMENT);
   }
-  public void createManagementGroup(String name) throws IOException
+  public void createManagementGroup(OrgUnitDescription name) throws IOException
   {
-    createGroup(Helper.orgUnitToManagerGroupEmail(name),name + " Management","Managers of "+name,MANAGEMENT);
+    createGroup(Helper.orgUnitToManagerGroupEmail(name),name.getName() + " Management","Managers of "+name.getName(),MANAGEMENT);
   }
   public void createStaffGroup(OrgUnitDescription name) throws IOException
   {
-    createGroup(Helper.orgUnitToStaffGroupEmail(name),name + " Staff","Staff of "+name,STAFF);
+    createGroup(Helper.orgUnitToStaffGroupEmail(name),name.getName() + " Staff","Staff of "+name.getName(),STAFF);
   }
   public void createRegionGroup(String name) throws IOException
   {
@@ -70,7 +70,6 @@ public class GroupWrapper
     g.setDescription(description);
     g.setName(name);
     serviceManager.makeNewGroup(g);
-
     serviceManager.updateGroupSettings(groupKey, GroupSettingUpdater.setSettingsToManagement(serviceManager.getSettingsOfGroup(groupKey)));
   }
   public boolean createGroup(String groupKey, String name, String description, int groupType) throws IOException

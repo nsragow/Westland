@@ -31,15 +31,15 @@ public class Helper
   }
   public static String orgUnitToStaffGroupEmail(OrgUnitDescription oud)
   {
-    if(oud.containsKey("domain") && null != oud.get("domain") && !oud.get("domain").trim().isEmpty()){
-      return "staff"+oud.get("domain");
+    if(null != oud && oud.contains("domain") && null != oud.get("domain") && !oud.get("domain").trim().isEmpty()){
+      return "staff@"+oud.get("domain");
     }
     return oud.getName().replace(" ","") + "staff@westlandreg.com";
   }
   public static String orgUnitToManagerGroupEmail(OrgUnitDescription oud)
   {
-    if(oud.containsKey("domain") && null != oud.get("domain") && !oud.get("domain").trim().isEmpty()){
-      return "staff"+oud.get("domain");
+    if(null != oud && oud.contains("domain") && null != oud.get("domain") && !oud.get("domain").trim().isEmpty()){
+      return "management@"+oud.get("domain");
     }
     return oud.getName().replace(" ","") + "management@westlandreg.com";
   }

@@ -20,7 +20,7 @@ public class CommandInterface
     "add - add user(s) to group or orgunit",
     "edit - change settings and values of orgunits, groups and users",
     "print - get data on orgunits, groups, and users",
-    "changeDetector - run the main workflow function orgcheck",
+    "changecheck - run the main workflow function orgcheck",
     "livesheet - run the main workflow function livesheet",
     "fullrun - run the main workflow function fullrun",
     "shortcheck - combines livesheet with changeDetector",
@@ -79,7 +79,7 @@ public class CommandInterface
           case "print":
           printCommand();
           break;
-          case "changedetector":
+          case "changecheck":
           System.out.println("Are you sure? This may take a few minutes. (Y/N)");
           if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
             System.out.println("executing");

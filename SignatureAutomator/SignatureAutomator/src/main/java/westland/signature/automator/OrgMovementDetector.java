@@ -76,7 +76,7 @@ public class OrgMovementDetector
   private static final int MANAGER = 1;
   private static final int AREA_MANAGER = 0;
 
-  private static final String HR_EMAIL = "noah.s@westlandreg.com";
+  private static final String HR_EMAIL = Strings.hr_email;
   private static final String HR_EMAIL_SUBJECT = "[Automated] Office Space Change Log";
 
 
@@ -91,8 +91,10 @@ public class OrgMovementDetector
   private OfficeSpaceConnection officeSpace;
   private GroupWrapper gW;
   private List<String> updateThisSignature;
+  private Map<String, Report> reports;
   public OrgMovementDetector(Set<User> users, Map<String,SignatureBuilder> dataMap, Map<String,OrgUnitDescription> orgMap, ServiceManager serviceManager) throws IOException
   {
+    reports = new HashMap<>();
     this.users = serviceManager.getUserSetBlackRemoved();
     this.dataMap = dataMap;
     this.orgMap = orgMap;
@@ -104,13 +106,14 @@ public class OrgMovementDetector
     gW = new GroupWrapper(serviceManager);
     officeSpace = new OfficeSpaceConnection(serviceManager.getUserSetBlackRemoved());
     updateThisSignature = new ArrayList<>();
+
   }
   public void checkForChangeInOrg()
   {//todo!, now we must make sure that things are called in order, not sure but threads may affect this
-
     //first check office space and update accordingly
     Map<String,OfficeSpaceConnection.ChangeDetail> orgChanges = officeSpace.getDifference(users);
     boolean refreshNeeded = false;
+    //todo need to check for ppl in gsuite but not officeSpace
     try{
       if(!officeSpace.getChangeLog().isEmpty()){
         serviceManager.sendEmail(HR_EMAIL,HR_EMAIL,HR_EMAIL_SUBJECT,officeSpace.getChangeLog());
@@ -118,7 +121,6 @@ public class OrgMovementDetector
     }catch(IOException e){
       logs.append("Tried to send email to HR but failed\n");
     }
-
     for(String uString : orgChanges.keySet()){
       User u;
       try{
@@ -143,9 +145,7 @@ public class OrgMovementDetector
     }
     if(refreshNeeded)serviceManager.refreshUsers();
 
-
     Table oldOrgTable = Initializer.getTable(Strings.current_user_orgs);
-
     for(User u : users){
       try{
         checkForChangeInOrg(u,oldOrgTable);
@@ -153,7 +153,6 @@ public class OrgMovementDetector
         logs.append(Helper.exceptionToString(e));
       }
     }
-
     try{
       Table.writeTableToCSV(oldOrgTable,Strings.current_user_orgs);
 
@@ -161,7 +160,11 @@ public class OrgMovementDetector
       logs.append("could not update org to user matching\r\n"+Helper.exceptionToString(e));
     }
     updateSignatures();
-
+    try{
+      sendReportsEmail();
+    }catch(Exception e){
+      logs.append(Helper.exceptionToString(e));
+    }
     if(logs.length() != 0){
       throw new LogException(logs.toString());
     }
@@ -260,9 +263,9 @@ public class OrgMovementDetector
           gW.removeEmailFromGroup(userName, Helper.regionToGroupEmail(region));
         }
       case MANAGER:
-        gW.removeEmailFromGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())));
+        gW.removeEmailFromGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org)));
       case STAFF:
-        gW.removeEmailFromGroup(userName, Helper.orgUnitToStaffGroupEmail(orgMap.get(org.toLowerCase())));
+        gW.removeEmailFromGroup(userName, Helper.orgUnitToStaffGroupEmail(orgMap.get(org)));
         break;
       default:
         throw new RuntimeException("Unexpected Error");
@@ -286,15 +289,15 @@ public class OrgMovementDetector
           gW.addEmailToGroup(userName, Helper.regionToGroupEmail(region));
         }
       case MANAGER:
-        if(!gW.hasGroup(Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())))){
-          gW.createManagementGroup(org);
+        if(!gW.hasGroup(Helper.orgUnitToManagerGroupEmail(orgMap.get(org)))){
+          gW.createManagementGroup(orgMap.get(org));
         }
-        gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())));
+        gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org)));
       case STAFF:
-        if(!gW.hasGroup(Helper.orgUnitToStaffGroupEmail(orgMap.get(org.toLowerCase())))){
-          gW.createStaffGroup(org);
+        if(!gW.hasGroup(Helper.orgUnitToStaffGroupEmail(orgMap.get(org)))){
+          gW.createStaffGroup(orgMap.get(org));
         }
-        gW.addEmailToGroup(userName, Helper.orgUnitToStaffGroupEmail(orgMap.get(org.toLowerCase())));
+        gW.addEmailToGroup(userName, Helper.orgUnitToStaffGroupEmail(orgMap.get(org)));
         break;
       default:
         throw new RuntimeException("Unexpected Error");
@@ -312,7 +315,7 @@ public class OrgMovementDetector
           gW.removeEmailFromGroup(userName, Helper.regionToGroupEmail(region));
         }
       case MANAGER:
-        gW.removeEmailFromGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())));
+        gW.removeEmailFromGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org)));
       case STAFF:
         break;
       default:
@@ -337,10 +340,10 @@ public class OrgMovementDetector
           gW.addEmailToGroup(userName, Helper.regionToGroupEmail(region));
         }
       case MANAGER:
-        if(!gW.hasGroup(Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())))){
-          gW.createManagementGroup(org);
+        if(!gW.hasGroup(Helper.orgUnitToManagerGroupEmail(orgMap.get(org)))){
+          gW.createManagementGroup(orgMap.get(org));
         }
-        gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org.toLowerCase())));
+        gW.addEmailToGroup(userName, Helper.orgUnitToManagerGroupEmail(orgMap.get(org)));
       case STAFF:
         break;
       default:
@@ -544,14 +547,42 @@ public class OrgMovementDetector
       toSend.append("Fax on new org: "+newOrg.get("fax")+"\n");
       toSend.append("Old ext: "+oldExt+"\n");
       toSend.append("New ext: "+UserFunctions.getExt(u)+"\n");
+
+      if(!reports.containsKey(u.getPrimaryEmail())){
+        reports.put(u.getPrimaryEmail(),new Report(u.getPrimaryEmail()));
+      }
+      reports.get(u.getPrimaryEmail()).addChange("Fax",oldOrg.get("fax"),newOrg.get("fax"),"Fax on account: "+sb.get("work_fax"));
+      reports.get(u.getPrimaryEmail()).addChange("Ext",""+oldExt,UserFunctions.getExt(u));
+      reports.get(u.getPrimaryEmail()).addChange("Org",oldOrgName,Helper.orgPathToName(u.getOrgUnitPath()));
       //todo make sure after testing that it actually does send to the correct ppl
       try{
-        serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"CHANGE_DETECTED for "+ u.getPrimaryEmail()+" from "+ oldOrgName + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
+        //serviceManager.sendEmail(Strings.main_account_it,Strings.main_account_it,"CHANGE_DETECTED for "+ u.getPrimaryEmail()+" from "+ oldOrgName + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
       }catch(Exception e){
         logs.append(Helper.exceptionToString(e));
         logs.append("\r\n");
       }
     }
+  }
+  private void sendReportsEmail() throws IOException
+  {
+    if(reports.keySet().isEmpty()) return;
+
+    StringBuilder toSend = new StringBuilder();
+    for(String key : reports.keySet()){
+      toSend.append(key);
+      toSend.append('\n');
+      toSend.append(reports.get(key).toString());
+      toSend.append('\n');
+    }
+
+
+    try{
+      serviceManager.sendEmail(Strings.it_reporting_email,Strings.it_reporting_email,"CHANGES_DETECTED",toSend.toString(),Strings.itCC);
+    }catch(Exception e){
+      logs.append(Helper.exceptionToString(e));
+      logs.append("\r\n");
+    }
+
   }
 
 
@@ -578,10 +609,15 @@ public class OrgMovementDetector
       toSend.append("Ext on account: "+UserFunctions.getExt(u)+"\n");
 
       //todo make sure after testing that it actually does send to the correct ppl
-
+      if(!reports.containsKey(u.getPrimaryEmail())){
+        reports.put(u.getPrimaryEmail(),new Report(u.getPrimaryEmail()));
+      }
+      reports.get(u.getPrimaryEmail()).addChange("Fax","",newOrg.get("fax"),"Fax on account: "+sb.get("work_fax"));
+      reports.get(u.getPrimaryEmail()).addChange("Ext","",UserFunctions.getExt(u));
+      reports.get(u.getPrimaryEmail()).addChange("Org","",Helper.orgPathToName(u.getOrgUnitPath()));
 
       try{
-        serviceManager.sendEmail(Strings.jesse_email,Strings.jesse_email,"ONBOARD for user: "+ u.getPrimaryEmail() + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
+        //serviceManager.sendEmail(Strings.jesse_email,Strings.jesse_email,"ONBOARD for user: "+ u.getPrimaryEmail() + " to "+Helper.orgPathToName(u.getOrgUnitPath()),toSend.toString(),Strings.itCC);
       }catch(Exception e){
         logs.append(Helper.exceptionToString(e));
         logs.append("\r\n");
@@ -594,7 +630,7 @@ public class OrgMovementDetector
       if(title.toLowerCase().contains("manager")){
         gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToManagerGroupEmail(orgMap.get(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase())));
       }
-      gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToStaffGroupEmail(Helper.orgPathToName(orgMap.get(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase()))));
+      gW.addEmailToGroup(u.getPrimaryEmail(),Helper.orgUnitToStaffGroupEmail(orgMap.get(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase())));
     }catch(IOException e){
       logs.append(Helper.exceptionToString(e));
     }

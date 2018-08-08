@@ -6,24 +6,11 @@ public class OrgUnitDescription
 {
   HashMap<String,String> pairs;
   HashSet<String> tags;
-  static HashSet<String> allowedKeys = null;
-  private void setUp()
-  {
-    if(allowedKeys == null){
-      allowedKeys = new HashSet<>();
-      allowedKeys.add("address");
-      allowedKeys.add("zip");
-      allowedKeys.add("city");
-      allowedKeys.add("state");
-      allowedKeys.add("website");
-      allowedKeys.add("details");
-      allowedKeys.add("fax");
-      allowedKeys.add("phone");
-      allowedKeys.add("area");
-      allowedKeys.add("region");
-      allowedKeys.add("pretty_string");
+  private String name;
 
-    }
+  public String getName()
+  {
+    return name;
   }
   public void addTag(String tag)
   {
@@ -42,14 +29,14 @@ public class OrgUnitDescription
   {
     return pairs.get("city")+", "+pairs.get("state")+" "+pairs.get("zip");
   }
-  protected OrgUnitDescription()
+  protected OrgUnitDescription(String name)
   {
     pairs = new HashMap<>();
-    setUp();
+    this.name = name;
   }
   protected OrgUnitDescription(String name, String description)
   {
-    setUp();
+    this.name = name;
     pairs = new HashMap<>();
     tags = new HashSet<>();
     List<String> list = new LinkedList<>();
@@ -88,11 +75,7 @@ public class OrgUnitDescription
   }
   public String get(String key)
   {
-    if(allowedKeys.contains(key)){
-      return pairs.get(key);
-    }else{
-      throw new IllegalStateException("has unrecognized key "+ key);
-    }
+    return pairs.get(key);
   }
 
   public String toString()

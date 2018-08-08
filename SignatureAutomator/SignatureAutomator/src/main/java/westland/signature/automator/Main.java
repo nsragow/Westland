@@ -208,6 +208,8 @@ public class Main
     Strings.workingDirectory = Main.workingDirectory;
     Strings.officeSpaceAPIkey = STRINGS.get("officeSpaceAPIkey","val");
     Strings.incomplete_signature_header = STRINGS.get("incomplete_signature_header","val");
+    Strings.hr_email = STRINGS.get("hr_email","val");
+    Strings.it_reporting_email = STRINGS.get("it_reporting_email","val");
   }
   /**
   * Build and returns a Directory service object authorized with the service accounts

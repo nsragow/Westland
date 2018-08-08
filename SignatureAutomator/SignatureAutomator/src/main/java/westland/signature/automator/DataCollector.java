@@ -122,7 +122,7 @@ public class DataCollector
       }
       //add the standard westland org unit
 
-      OrgUnitDescription westland = new OrgUnitDescription();
+      OrgUnitDescription westland = new OrgUnitDescription("Westland");
       westland.put("zip",Strings.root_org_zip).put("city",Strings.root_org_city).put("address",Strings.root_org_address).put("state",Strings.root_org_state).put("phone",Strings.root_org_phone).put("fax","");
       orgMap.put("Westland",westland);
 
