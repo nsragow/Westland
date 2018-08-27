@@ -116,7 +116,7 @@ public class OrgMovementDetector
     //todo need to check for ppl in gsuite but not officeSpace
     try{
       if(!officeSpace.getChangeLog().isEmpty()){
-        serviceManager.sendEmail(HR_EMAIL,HR_EMAIL,HR_EMAIL_SUBJECT,officeSpace.getChangeLog());
+        serviceManager.sendEmail(HR_EMAIL,Strings.main_account_it,HR_EMAIL_SUBJECT,officeSpace.getChangeLog());
       }
     }catch(IOException e){
       logs.append("Tried to send email to HR but failed\n");
@@ -455,7 +455,12 @@ public class OrgMovementDetector
         try{
           removeFromAllGroups(u.getPrimaryEmail(),title,org,area,region);
           service.users().update(u.getPrimaryEmail(),u).execute();
-          officeSpace.deleteUser(u.getPrimaryEmail().toLowerCase());
+          try{
+            officeSpace.deleteUser(u.getPrimaryEmail().toLowerCase());
+          }catch(LogException logExce){
+            logs.append(Helper.exceptionToString(logExce));
+            logs.append("\r\n");
+          }
           oldOrgTable.remove(u.getPrimaryEmail());
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
@@ -577,7 +582,7 @@ public class OrgMovementDetector
 
 
     try{
-      serviceManager.sendEmail(Strings.it_reporting_email,Strings.it_reporting_email,"CHANGES_DETECTED",toSend.toString(),Strings.itCC);
+      serviceManager.sendEmail(Strings.it_reporting_email,Strings.main_account_it,"CHANGES_DETECTED",toSend.toString(),Strings.itCC);
     }catch(Exception e){
       logs.append(Helper.exceptionToString(e));
       logs.append("\r\n");

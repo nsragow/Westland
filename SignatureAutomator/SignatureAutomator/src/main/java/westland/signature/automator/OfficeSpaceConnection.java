@@ -238,7 +238,15 @@ public class OfficeSpaceConnection
   }
   public void deleteUser(String email)
   {
-    String id = ""+employeeMap.get(email.toLowerCase()).getId();
+
+    String id = null;
+    OfficeSpaceEmployee employee = null;
+    if(email != null){
+      employee = employeeMap.get(email.toLowerCase());
+    }
+    if(employee!=null){
+      id = ""+employee.getId();
+    }
     employeeMap.remove(email.toLowerCase());
     if(id == null){
       throw new LogException("could not find OfficeSpaceID for email "+ email);
