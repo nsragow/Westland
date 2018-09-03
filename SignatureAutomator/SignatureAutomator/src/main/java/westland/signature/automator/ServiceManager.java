@@ -221,6 +221,10 @@ public class ServiceManager
   }
   public void sendEmail(String to, String from, String subject, String bodyText, String[] ccs) throws IOException
   {
+    //if(true){
+      //System.out.println("Email to: "+to+" Subject: "+subject+" Body: \n"+bodyText);
+      //return;
+    //}
     //todo removeEmailFromGroup
     try{
       Properties props = new Properties();

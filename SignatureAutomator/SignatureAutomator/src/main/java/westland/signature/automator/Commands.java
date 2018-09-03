@@ -26,6 +26,7 @@ public class Commands
     gW = new GroupWrapper(serviceManager);
     this.sc = sc;
   }
+  
   public void addToOfficeSpace(String userString)
   {
     if(officeSpace == null){

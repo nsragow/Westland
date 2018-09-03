@@ -57,6 +57,9 @@ public class CommandInterface
           case "create":
           createCommand();
           break;
+          case "officespaceoverride":
+          officeSpaceOverride();
+          break;
           case "officespace":
           officeSpaceCommand();
           break;
@@ -136,6 +139,20 @@ public class CommandInterface
         //createGroupCommand();
         break;
       case 2:
+        break;
+      default:
+        throw new RuntimeException("Unexpected Error");
+    }
+
+  }
+  private void officeSpaceOverride()
+  {
+    System.out.println("Are you ready? This command may take some time and can interfere \nwith changes that occur during the command. (Y/N)");
+    switch(Helper.waitOnOption(new String[]{"Y","N"},sc)){
+      case 0:
+
+        break;
+      case 1:
         break;
       default:
         throw new RuntimeException("Unexpected Error");

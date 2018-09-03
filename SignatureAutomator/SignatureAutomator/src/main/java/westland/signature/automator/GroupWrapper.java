@@ -75,15 +75,19 @@ public class GroupWrapper
   public boolean createGroup(String groupKey, String name, String description, int groupType) throws IOException
   {
     if(!hasGroup(groupKey)){
-      switch(groupType){
-        case STAFF:
-        makeNewStaffGroup(groupKey, name, description);
-        break;
-        case MANAGEMENT:
-        makeNewManagementGroup(groupKey, name, description);
-        break;
-        default:
-        throw new RuntimeException("Unknown grouptype "+ groupType);
+      try{
+        switch(groupType){
+          case STAFF:
+          makeNewStaffGroup(groupKey, name, description);
+          break;
+          case MANAGEMENT:
+          makeNewManagementGroup(groupKey, name, description);
+          break;
+          default:
+          throw new RuntimeException("Unknown grouptype "+ groupType);
+        }
+      }catch(IOException e){
+        throw new IOException(Helper.exceptionToString(e)+"GroupKey: "+groupKey);
       }
       return true;
     }

@@ -417,6 +417,7 @@ public class OrgMovementDetector
 
     switch(status){
       case DO_NOTHING:
+      //changeOSOrgDependentInfo(u.getPrimaryEmail(),org);
       break;
 
       case TITLE_CHANGE:
@@ -442,6 +443,7 @@ public class OrgMovementDetector
           removeFromAllGroups(u.getPrimaryEmail(),oldTitle,oldOrg,oldArea,oldRegion);
           addToAllGroups(u.getPrimaryEmail(),title,org,area,region);
           sendEmailOnOrgChange(u,oldOrg,oldExt);
+          changeOSOrgDependentInfo(u.getPrimaryEmail(),org);
           oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
           updateThisSignature.add(u.getPrimaryEmail());
         }catch(Exception e){
@@ -474,6 +476,7 @@ public class OrgMovementDetector
 
           addToAllGroups(u.getPrimaryEmail(),title,org,area,region);
           sendEmailOnNewUser(u);
+          changeOSOrgDependentInfo(u.getPrimaryEmail(),org);
           oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
@@ -484,6 +487,20 @@ public class OrgMovementDetector
       default:
       throw new RuntimeException("Unexpected Error");
     }
+  }
+  private void changeOSOrgDependentInfo(String email, String orgUnitName)
+  {
+    OrgUnitDescription oud = orgMap.get(orgUnitName);
+    if(oud == null){
+      throw new LogException("Could not find oud for email: "+email+" and orgunit: "+orgUnitName);
+    }
+    String newWorkPhone = "";
+    if(oud.contains("phone")){
+      newWorkPhone = oud.get("phone");
+    }
+    officeSpace.changeUserField(email,"work_phone",newWorkPhone);
+    officeSpace.changeUserField(email,"udf1",oud.getName());
+    officeSpace.changeUserField(email,"udf0",oud.getPartOne()+"\n"+oud.getPartTwo());
   }
   private void titleAndOrgToGroup(User u, String newOrgName)
   {

@@ -155,14 +155,18 @@ public class OfficeSpaceConnection
       }
     }
   }
-  public void changeUserTitle(String email, String title)
+  public void changeUserField(String email, String key, String value)
   {
-    String id = ""+employeeMap.get(email.toLowerCase()).getId();
+    OfficeSpaceEmployee empl = employeeMap.get(email.toLowerCase());
+    if(empl == null){
+      throw new LogException("could not find OfficeSpace employee for email "+ email);
+    }
+    String id = ""+empl.getId();
     if(id == null){
       throw new LogException("could not find OfficeSpaceID for email "+ email);
     }
 
-    Entity<String> payload = Entity.json("{\"record\":{\"title\":\""+title+"\"}}");
+    Entity<String> payload = Entity.json("{\"record\":{\""+key+"\":\""+value+"\"}}");
     Client client = ClientBuilder.newClient();
     Invocation.Builder builder = client.target("https://westland.officespacesoftware.com")
     .path("/api/1/employees/"+id)
@@ -175,9 +179,9 @@ public class OfficeSpaceConnection
       if(cd != null){
         oldTitle = cd.getTitle();
       }else{
-        oldTitle = "could not find old title";
+        oldTitle = "could not find old value";
       }
-      logDetails.add(new LogDetail(email,oldTitle,title));
+      logDetails.add(new LogDetail(email,"",value));
     }catch(Exception e){
       throw new LogException(Helper.exceptionToString(e));
     }
