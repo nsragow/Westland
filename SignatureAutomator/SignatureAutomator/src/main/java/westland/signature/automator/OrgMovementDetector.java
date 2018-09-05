@@ -191,6 +191,8 @@ public class OrgMovementDetector
       }else{
         return DO_NOTHING;
       }
+    }else if(!Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().trim().equals("offboard")){
+      return OFFBOARD;
     }
 //todo need to deal with users being moved to unusual org units
     if(!oldInfo.containsKey(u.getPrimaryEmail())){
@@ -456,6 +458,7 @@ public class OrgMovementDetector
         u.setOrgUnitPath("/Offboard");
         try{
           removeFromAllGroups(u.getPrimaryEmail(),title,org,area,region);
+          u.setSuspended(true);
           service.users().update(u.getPrimaryEmail(),u).execute();
           try{
             officeSpace.deleteUser(u.getPrimaryEmail().toLowerCase());
@@ -476,7 +479,6 @@ public class OrgMovementDetector
 
           addToAllGroups(u.getPrimaryEmail(),title,org,area,region);
           sendEmailOnNewUser(u);
-          changeOSOrgDependentInfo(u.getPrimaryEmail(),org);
           oldOrgTable.addRow(new String[]{u.getPrimaryEmail(),org,title,ext+""});
         }catch(Exception e){
           logs.append(Helper.exceptionToString(e));
