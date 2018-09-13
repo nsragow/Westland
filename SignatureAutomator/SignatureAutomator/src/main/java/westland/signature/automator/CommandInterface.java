@@ -24,7 +24,8 @@ public class CommandInterface
     "livesheet - run the main workflow function livesheet",
     "fullrun - run the main workflow function fullrun",
     "shortcheck - combines livesheet with changeDetector",
-    "officespace - add users from gsuite to officespace"
+    "officespace - add users from gsuite to officespace",
+    "restorefrombackup - restore gsuite info from csv"
   };
 
   public CommandInterface(ServiceManager serviceManager)
@@ -56,6 +57,9 @@ public class CommandInterface
           break;
           case "create":
           createCommand();
+          break;
+          case "uns":
+          uns();
           break;
           case "officespaceoverride":
           officeSpaceOverride();
@@ -97,6 +101,15 @@ public class CommandInterface
             Main.liveSheetRun();
             System.out.println("executing orgcheck");
             Main.orgCheck();
+            System.out.println("done");
+          }
+          break;
+          case "signaturerefresh":
+          System.out.println("Are you sure? This may take a few minutes. (Y/N)");
+          if(0==Helper.waitOnOption(new String[]{"Y","N"},sc)){
+            System.out.println("executing signaturerefresh");
+            Main.signatureUpdater();
+
             System.out.println("done");
           }
           break;
@@ -143,6 +156,11 @@ public class CommandInterface
       default:
         throw new RuntimeException("Unexpected Error");
     }
+
+  }
+  private void uns()
+  {
+    com.uns();
 
   }
   private void officeSpaceOverride()

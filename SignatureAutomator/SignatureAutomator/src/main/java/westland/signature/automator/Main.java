@@ -298,6 +298,43 @@ public class Main
       exit(1);
     }
   }
+  protected static void signatureUpdater()
+  {
+
+
+
+
+
+    StringBuilder logs = new StringBuilder();
+    DataCollector dataCollector = null;
+    try{
+
+      dataCollector = new DataCollector(serviceManager,logs);
+    }catch(FatalException e){
+      emailOrErr(e);
+      exit(1);
+    }
+    if(logs.length() != 0){
+      emailOrLog(new RuntimeException(logs.toString()));
+    }
+
+
+    Map<String,SignatureBuilder> dataMap = dataCollector.getDataMap();
+    SignatureUpdater sU = new SignatureUpdater(dataMap,serviceManager);
+    try{
+      //todo make sure signatures are updated
+      sU.updateSignatures();
+    }
+    catch(FatalException e){//todo redo the response
+      emailOrErr(e);
+      exit(1);
+    }catch(LogException e){//todo redo the response
+      emailOrLog(e);
+    }catch(IOException e){
+      emailOrErr(e);
+      exit(1);
+    }
+  }
 
   protected static void liveSheetRun()
   {

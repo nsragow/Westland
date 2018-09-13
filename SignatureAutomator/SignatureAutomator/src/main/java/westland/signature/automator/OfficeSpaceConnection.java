@@ -377,7 +377,9 @@ public class OfficeSpaceConnection
     JSONObject seated = (JSONObject)employee.get("seating");
     List<Long> ids = new LinkedList<>();
     //todo for now ignore multi seating
-    if(!emailsToIDandStatus.containsKey(((String)employee.get("email")).toLowerCase())){
+    String lowerCaseEmail = ((String)employee.get("email")).toLowerCase();
+    boolean isContained = emailsToIDandStatus.containsKey(lowerCaseEmail);
+    if(!isContained){
       emailsToIDandStatus.put(((String)employee.get("email")).toLowerCase(),new LinkedList<IdAndStatus>());
     }
 

@@ -177,7 +177,7 @@ public class SignatureBuilder
     if(toCast == null){
       throw new NullPointerException("trying to cast null object");
     }
-    if(toCast instanceof List){
+    if(toCast instanceof List || toCast instanceof ArrayList){
       List<Object> stepOne = (List<Object>)toCast;
       if(!stepOne.isEmpty()){
         Object stepOneSub = stepOne.get(0);
@@ -198,6 +198,7 @@ public class SignatureBuilder
         }
         throw new IllegalArgumentException("not of type List<ArrayMap> but rather List<"+ stepOneSub.getClass().toString()+">");
       }
+
     }
     throw new IllegalArgumentException("not of type List but rather "+ toCast.getClass().toString());
 

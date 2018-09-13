@@ -312,7 +312,6 @@ public class ServiceManager
         Users userobj = list.execute();
         token = userobj.getNextPageToken();
         users.addAll(userobj.getUsers());
-
       }while(token!=null);
       Map<String,User> userMap = new HashMap<>();
 

@@ -185,13 +185,14 @@ public class OrgMovementDetector
   private int movementStatus(User u, Table oldInfo)
   {
     //do we need to offboard?
+    
     if(u.getSuspended()){
       if(!Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().trim().equals("offboard")){
         return OFFBOARD;
       }else{
         return DO_NOTHING;
       }
-    }else if(!Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().trim().equals("offboard")){
+    }else if(Helper.orgPathToName(u.getOrgUnitPath()).toLowerCase().trim().equals("offboard")){
       return OFFBOARD;
     }
 //todo need to deal with users being moved to unusual org units
@@ -419,7 +420,7 @@ public class OrgMovementDetector
 
     switch(status){
       case DO_NOTHING:
-      //changeOSOrgDependentInfo(u.getPrimaryEmail(),org);
+
       break;
 
       case TITLE_CHANGE:

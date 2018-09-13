@@ -26,7 +26,7 @@ public class Commands
     gW = new GroupWrapper(serviceManager);
     this.sc = sc;
   }
-  
+
   public void addToOfficeSpace(String userString)
   {
     if(officeSpace == null){
@@ -97,6 +97,23 @@ public class Commands
         }
       }
     }while(again);
+  }
+  public void uns()
+  {
+    System.out.println("hello");
+    for(User u : serviceManager.getUserList()){
+      try{
+        System.out.println(u.getPrimaryEmail());
+        u.setSuspended(false);
+        serviceManager.getDirectory().users().update(u.getPrimaryEmail(),u).execute();
+
+
+      }catch(Exception e){
+      e.printStackTrace();
+      }
+
+    }
+
   }
   public Collection<User> formattedUserStringToSet(String userString) throws IOException
   {
